@@ -9,7 +9,6 @@ export default function Layout({ children }) {
       <video className="bg-video" autoPlay loop muted playsInline preload="auto">
         <source src={VIDEO_FONDO} type="video/mp4" />
       </video>
-      <div className="bg-overlay" />
 
       <div className="topbar">
         <h1>📦 Envíos Ayora Ensenada</h1>
