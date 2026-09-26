@@ -10,15 +10,18 @@ export default function Layout({ children }) {
         <source src={VIDEO_FONDO} type="video/mp4" />
       </video>
 
-      <div className="topbar">
-        <h1>📦 Envíos Ayora Ensenada</h1>
+      <header className="topbar">
+        <Link href="/" className="brand">
+          <img src="/logo.jpg" alt="Envíos Ayora Cajón 24" className="brand-logo" />
+        </Link>
         <nav>
           <Link href="/admin">Panel</Link>
           <Link href="/escanear">Escanear</Link>
           <Link href="/admin/vendedores">Vendedores</Link>
           <Link href="/admin/clientes">Clientes</Link>
         </nav>
-      </div>
+      </header>
+
       <div className="container">{children}</div>
     </div>
   );

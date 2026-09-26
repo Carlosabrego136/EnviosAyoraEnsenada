@@ -37,16 +37,63 @@ a { color: inherit; }
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   color: #fff;
-  padding: 14px 20px;
+  padding: 10px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
   position: relative;
   z-index: 1;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
 }
-.topbar h1 { font-size: 16px; margin: 0; font-weight: 600; }
-.topbar nav a { margin-left: 16px; font-size: 14px; text-decoration: none; opacity: 0.85; }
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  line-height: 0;
+}
+
+.brand-logo {
+  height: 86px;
+  width: auto;
+  display: block;
+  border-radius: 14px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45);
+  transition: transform 0.2s ease;
+}
+.brand:hover .brand-logo { transform: scale(1.03); }
+
+.topbar nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+}
+.topbar nav a {
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  color: #fff;
+  opacity: 0.9;
+  padding: 6px 4px;
+}
 .topbar nav a:hover { opacity: 1; }
+
+@media (max-width: 640px) {
+  .topbar {
+    justify-content: center;
+    text-align: center;
+    padding: 14px 12px;
+  }
+  .brand-logo { height: 110px; }
+  .topbar nav {
+    width: 100%;
+    justify-content: center;
+    gap: 10px 16px;
+  }
+  .topbar nav a { font-size: 13px; }
+}
 
 .card {
   background: rgba(255, 255, 255, 0.94);
