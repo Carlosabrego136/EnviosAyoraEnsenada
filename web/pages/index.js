@@ -1,16 +1,61 @@
 import Link from 'next/link';
 import Layout from '../components/Layout';
 
+const ACCIONES = [
+  {
+    href: '/escanear',
+    icono: '📷',
+    titulo: 'Escanear paquete',
+    texto: 'Captura vendedor y cliente en segundos con la cámara.',
+    clase: 'accion-naranja',
+  },
+  {
+    href: '/admin',
+    icono: '📊',
+    titulo: 'Panel administrativo',
+    texto: 'Consulta y da seguimiento a todos tus envíos.',
+    clase: 'accion-azul',
+  },
+  {
+    href: '/admin/vendedores',
+    icono: '🧑‍💼',
+    titulo: 'Vendedores',
+    texto: 'Da de alta vendedores y genera su código QR.',
+    clase: 'accion-morado',
+  },
+  {
+    href: '/admin/clientes',
+    icono: '📦',
+    titulo: 'Clientes',
+    texto: 'Administra tus clientes y sus datos de contacto.',
+    clase: 'accion-amarillo',
+  },
+];
+
 export default function Home() {
   return (
     <Layout>
-      <div className="card">
-        <h2>Bienvenido</h2>
-        <p>Sistema de captura por QR y seguimiento de envíos.</p>
-        <p>
-          <Link href="/escanear" className="btn">Ir a escanear paquete</Link>{' '}
-          <Link href="/admin" className="btn secondary">Ver panel administrativo</Link>
+      <section className="hero">
+        <span className="hero-eyebrow">Sistema de envíos</span>
+        <h1 className="hero-title">Envíos Ayora Cajón 24</h1>
+        <p className="hero-subtitle">
+          Captura por código QR, organización por bloques y seguimiento de tus
+          paquetes, todo en un solo lugar.
         </p>
+        <div className="hero-cta">
+          <Link href="/escanear" className="btn btn-hero">Ir a escanear paquete</Link>
+          <Link href="/admin" className="btn btn-hero secondary">Ver panel administrativo</Link>
+        </div>
+      </section>
+
+      <div className="acciones-grid">
+        {ACCIONES.map((a) => (
+          <Link key={a.href} href={a.href} className={`accion-card ${a.clase}`}>
+            <span className="accion-icono">{a.icono}</span>
+            <h3>{a.titulo}</h3>
+            <p>{a.texto}</p>
+          </Link>
+        ))}
       </div>
     </Layout>
   );
