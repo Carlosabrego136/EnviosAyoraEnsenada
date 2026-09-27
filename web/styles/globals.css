@@ -243,6 +243,7 @@ a { color: inherit; }
 .accion-morado  { background: linear-gradient(135deg, #6a2a5c 0%, #3c1436 100%); }
 .accion-amarillo{ background: linear-gradient(135deg, #f6d34a 0%, #e0a91f 100%); color: #2a1e05; }
 .accion-amarillo p { color: rgba(42, 30, 5, 0.8); }
+.accion-dorado  { background: linear-gradient(135deg, #1c2333 0%, #05060a 100%); border: 1px solid rgba(246, 168, 63, 0.4); }
 
 .card {
   background: rgba(255, 255, 255, 0.94);

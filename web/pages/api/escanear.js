@@ -50,6 +50,9 @@ export default async function handler(req, res) {
     [vendedor.id, cliente.id, cliente.categoria_id, paqueteria_id || null, numero_guia || null, foto || null]
   );
 
+  // Guardamos el primer paso del historial (para la línea de tiempo pública de rastreo).
+  await query('INSERT INTO estado_historial (paquete_id, estado) VALUES ($1, $2)', [rows[0].id, 'recibido']);
+
   return res.status(201).json({
     paquete: rows[0],
     vendedor: vendedor.nombre,

@@ -75,6 +75,16 @@ CREATE INDEX IF NOT EXISTS idx_paquetes_categoria ON paquetes (categoria_id);
 CREATE INDEX IF NOT EXISTS idx_paquetes_estado ON paquetes (estado);
 CREATE INDEX IF NOT EXISTS idx_paquetes_capturado_en ON paquetes (capturado_en);
 
+-- Historial de cada cambio de estado de un paquete (para la línea de tiempo
+-- que ve el cliente en la página pública de rastreo).
+CREATE TABLE IF NOT EXISTS estado_historial (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  paquete_id UUID NOT NULL REFERENCES paquetes(id),
+  estado TEXT NOT NULL,
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_estado_historial_paquete ON estado_historial (paquete_id);
+
 -- Historial de notificaciones de WhatsApp enviadas por paquete
 CREATE TABLE IF NOT EXISTS notificaciones (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
