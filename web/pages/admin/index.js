@@ -39,6 +39,18 @@ export default function AdminPanel() {
     cargar();
   }
 
+  async function eliminar(id, clienteNombre) {
+    if (!confirm(`¿Seguro que quieres eliminar el paquete de "${clienteNombre}"? Esta acción no se puede deshacer.`))
+      return;
+    const res = await fetch(`/api/paquetes/${id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert('Error al eliminar: ' + (data.error || 'desconocido'));
+      return;
+    }
+    cargar();
+  }
+
   async function notificar(id) {
     const res = await fetch(`/api/paquetes/${id}/notificar`, { method: 'POST' });
     const data = await res.json();
@@ -124,6 +136,13 @@ export default function AdminPanel() {
                     </select>{' '}
                     <button className="btn secondary" onClick={() => notificar(p.id)}>
                       Notificar WhatsApp
+                    </button>{' '}
+                    <button
+                      className="btn secondary"
+                      style={{ background: '#fee2e2', color: '#991b1b' }}
+                      onClick={() => eliminar(p.id, p.cliente_nombre)}
+                    >
+                      Eliminar
                     </button>
                   </td>
                 </tr>
