@@ -78,7 +78,7 @@ a { color: inherit; }
 }
 
 .topbar {
-  background: rgba(17, 24, 39, 0.55);
+  background: rgba(8, 13, 26, 0.7);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   color: #fff;
@@ -90,7 +90,8 @@ a { color: inherit; }
   gap: 12px;
   position: relative;
   z-index: 1;
-  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.4);
+  border-bottom: 1px solid rgba(196, 203, 214, 0.18);
 }
 
 .brand {
@@ -142,10 +143,10 @@ a { color: inherit; }
 
 /* --- Sección de bienvenida (hero) --- */
 .hero {
-  background: linear-gradient(135deg, rgba(28, 63, 110, 0.92) 0%, rgba(74, 25, 66, 0.9) 100%);
+  background: linear-gradient(135deg, rgba(10, 17, 34, 0.94) 0%, rgba(22, 33, 58, 0.92) 100%);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(246, 168, 63, 0.35);
+  border: 1px solid rgba(203, 210, 222, 0.3);
   border-radius: 20px;
   padding: 48px 40px;
   margin: 28px 0 24px;
@@ -156,9 +157,9 @@ a { color: inherit; }
 
 .hero-eyebrow {
   display: inline-block;
-  background: rgba(246, 168, 63, 0.18);
-  color: #f6a83f;
-  border: 1px solid rgba(246, 168, 63, 0.5);
+  background: rgba(203, 210, 222, 0.15);
+  color: #dfe3ea;
+  border: 1px solid rgba(203, 210, 222, 0.45);
   border-radius: 999px;
   padding: 5px 14px;
   font-size: 12px;
@@ -173,7 +174,7 @@ a { color: inherit; }
   font-size: 38px;
   font-weight: 800;
   letter-spacing: -0.01em;
-  background: linear-gradient(90deg, #f6a83f 0%, #f6d34a 100%);
+  background: linear-gradient(90deg, #b7bfcc 0%, #ffffff 45%, #9aa4b5 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -194,11 +195,11 @@ a { color: inherit; }
   font-size: 15px;
   font-weight: 700;
   border-radius: 10px;
-  background: #f6a83f;
-  color: #1c1408;
-  box-shadow: 0 6px 18px rgba(246, 168, 63, 0.35);
+  background: linear-gradient(90deg, #c7cdd8 0%, #ffffff 100%);
+  color: #101a30;
+  box-shadow: 0 6px 18px rgba(200, 206, 216, 0.3);
 }
-.btn-hero:hover { background: #f6d34a; }
+.btn-hero:hover { background: linear-gradient(90deg, #ffffff 0%, #dfe3ea 100%); }
 .btn-hero.secondary {
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
@@ -238,11 +239,12 @@ a { color: inherit; }
 .accion-card h3 { margin: 0 0 6px; font-size: 16px; font-weight: 700; }
 .accion-card p { margin: 0; font-size: 13px; line-height: 1.4; color: rgba(255, 255, 255, 0.85); }
 
-.accion-naranja { background: linear-gradient(135deg, #f6a83f 0%, #d9781f 100%); }
-.accion-azul    { background: linear-gradient(135deg, #2a4f8f 0%, #16294d 100%); }
-.accion-morado  { background: linear-gradient(135deg, #6a2a5c 0%, #3c1436 100%); }
-.accion-amarillo{ background: linear-gradient(135deg, #f6d34a 0%, #e0a91f 100%); color: #2a1e05; }
-.accion-amarillo p { color: rgba(42, 30, 5, 0.8); }
+.accion-naranja { background: linear-gradient(135deg, #33455f 0%, #131c30 100%); }
+.accion-azul    { background: linear-gradient(135deg, #1b2740 0%, #0a1120 100%); }
+.accion-morado  { background: linear-gradient(135deg, #26314a 0%, #10172a 100%); }
+.accion-amarillo{ background: linear-gradient(135deg, #d6dbe3 0%, #9aa4b5 100%); color: #101a30; }
+.accion-amarillo p { color: rgba(16, 26, 48, 0.75); }
+.accion-plata   { background: linear-gradient(135deg, #0d1526 0%, #05080f 100%); border: 1px solid rgba(203, 210, 222, 0.4); }
 
 .card {
   background: rgba(255, 255, 255, 0.94);
@@ -256,7 +258,7 @@ a { color: inherit; }
 
 .btn {
   display: inline-block;
-  background: #111827;
+  background: #101a30;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -265,8 +267,8 @@ a { color: inherit; }
   cursor: pointer;
   text-decoration: none;
 }
-.btn:hover { background: #1f2937; }
-.btn.secondary { background: #e5e7eb; color: #111827; }
+.btn:hover { background: #1c2b4a; }
+.btn.secondary { background: #e5e7eb; color: #101a30; }
 .btn.secondary:hover { background: #d1d5db; }
 
 input, select, textarea {

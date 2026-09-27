@@ -30,6 +30,13 @@ const ACCIONES = [
     texto: 'Administra tus clientes y sus datos de contacto.',
     clase: 'accion-amarillo',
   },
+  {
+    href: '/admin/cotizador',
+    icono: '💲',
+    titulo: 'Cotizador',
+    texto: 'Calcula el precio de un envío según el tabulador oficial.',
+    clase: 'accion-plata',
+  },
 ];
 
 export default function Home() {
