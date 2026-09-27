@@ -152,6 +152,25 @@ export default function Escanear() {
           {paso === 3 && 'confirma y guarda'}
         </p>
 
+        {paso === 1 && (
+          <p style={{ fontSize: 13, color: '#4b5563', marginTop: -6 }}>
+            Apunta la cámara al código QR <b>impreso</b> del vendedor que entrega el paquete
+            (su tarjeta o gafete). No es necesario buscarlo en el sistema.
+          </p>
+        )}
+        {paso === 2 && (
+          <p style={{ fontSize: 13, color: '#4b5563', marginTop: -6 }}>
+            Ahora apunta la cámara al código QR <b>impreso</b> del cliente que va a recibir el
+            paquete (su tarjeta o el que tiene pegado en su casillero).
+          </p>
+        )}
+        {paso === 3 && (
+          <p style={{ fontSize: 13, color: '#4b5563', marginTop: -6 }}>
+            Revisa que el vendedor y el cliente sean los correctos, agrega la paquetería/guía si
+            la tienes, y guarda para registrar el paquete.
+          </p>
+        )}
+
         {mensaje && <p style={{ color: '#065f46', fontWeight: 600 }}>{mensaje}</p>}
         {error && <p style={{ color: '#b91c1c', fontWeight: 600 }}>{error}</p>}
 

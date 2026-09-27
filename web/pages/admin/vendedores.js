@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import Layout from '../../components/Layout';
 
 export default function Vendedores() {
@@ -114,9 +115,9 @@ export default function Vendedores() {
                   </span>
                 </td>
                 <td>
-                  <a className="btn secondary" href={`/api/qr/vendedor/${v.id}`} target="_blank" rel="noreferrer">
+                  <Link className="btn secondary" href={`/qr/vendedor/${v.id}`}>
                     Ver / imprimir QR
-                  </a>
+                  </Link>
                 </td>
                 <td>
                   {editandoId === v.id ? (
