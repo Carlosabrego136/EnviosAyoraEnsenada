@@ -30,13 +30,6 @@ const ACCIONES = [
     texto: 'Administra tus clientes y sus datos de contacto.',
     clase: 'accion-amarillo',
   },
-  {
-    href: '/rastrear',
-    icono: '🔎',
-    titulo: 'Rastrear mi paquete',
-    texto: 'Página pública para que tus clientes vean el estado de su envío.',
-    clase: 'accion-dorado',
-  },
 ];
 
 export default function Home() {

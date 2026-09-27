@@ -25,7 +25,6 @@ export default function Layout({ children }) {
           <Link href="/escanear">Escanear</Link>
           <Link href="/admin/vendedores">Vendedores</Link>
           <Link href="/admin/clientes">Clientes</Link>
-          <Link href="/rastrear">Rastrear mi paquete</Link>
         </nav>
       </header>
 
