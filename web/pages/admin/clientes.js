@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Layout from '../../components/Layout';
 
@@ -9,6 +9,7 @@ export default function Clientes() {
   const [telefono, setTelefono] = useState('');
   const [categoriaId, setCategoriaId] = useState('');
   const [mostrarInactivos, setMostrarInactivos] = useState(false);
+  const [busqueda, setBusqueda] = useState('');
 
   const [editandoId, setEditandoId] = useState(null);
   const [edicion, setEdicion] = useState({ nombre: '', telefono: '', categoria_id: '' });
@@ -70,6 +71,12 @@ export default function Clientes() {
     cargar();
   }
 
+  const clientesFiltrados = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    if (!q) return clientes;
+    return clientes.filter((c) => c.nombre.toLowerCase().includes(q));
+  }, [clientes, busqueda]);
+
   return (
     <Layout>
       <div className="card">
@@ -99,6 +106,13 @@ export default function Clientes() {
       </div>
 
       <div className="card">
+        <label>Buscar cliente</label>
+        <input
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Escribe un nombre para filtrar..."
+        />
+
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
           <input
             type="checkbox"
@@ -110,7 +124,7 @@ export default function Clientes() {
         </label>
 
         <div className="table-wrap">
-        <table>
+        <table className="tabla-responsiva">
           <thead>
             <tr>
               <th>Nombre</th>
@@ -123,11 +137,11 @@ export default function Clientes() {
             </tr>
           </thead>
           <tbody>
-            {clientes.map((c) => {
+            {clientesFiltrados.map((c) => {
               const enEdicion = editandoId === c.id;
               return (
                 <tr key={c.id} style={{ opacity: c.activo ? 1 : 0.55 }}>
-                  <td>
+                  <td data-label="Nombre">
                     {enEdicion ? (
                       <input
                         value={edicion.nombre}
@@ -138,7 +152,7 @@ export default function Clientes() {
                       c.nombre
                     )}
                   </td>
-                  <td>
+                  <td data-label="Teléfono">
                     {enEdicion ? (
                       <input
                         value={edicion.telefono}
@@ -150,7 +164,7 @@ export default function Clientes() {
                       c.telefono || '—'
                     )}
                   </td>
-                  <td>
+                  <td data-label="Categoría">
                     {enEdicion ? (
                       <select
                         value={edicion.categoria_id}
@@ -166,22 +180,22 @@ export default function Clientes() {
                       c.categoria_nombre || 'General'
                     )}
                   </td>
-                  <td>
+                  <td data-label="Estado">
                     <span className={`badge ${c.activo ? 'entregado' : 'recibido'}`}>
                       {c.activo ? 'Activo' : 'Desactivado'}
                     </span>
                   </td>
-                  <td>
+                  <td data-label="QR">
                     <Link className="btn secondary" href={`/qr/cliente/${c.id}`}>
                       Ver / imprimir QR
                     </Link>
                   </td>
-                  <td>
+                  <td data-label="Historial">
                     <Link className="btn secondary" href={`/admin/clientes/${c.id}/historial`}>
                       Ver historial
                     </Link>
                   </td>
-                  <td>
+                  <td data-label="Acciones">
                     {enEdicion ? (
                       <>
                         <button className="btn" onClick={() => guardarEdicion(c.id)}>Guardar</button>{' '}
@@ -199,7 +213,7 @@ export default function Clientes() {
                 </tr>
               );
             })}
-            {clientes.length === 0 && (
+            {clientesFiltrados.length === 0 && (
               <tr>
                 <td colSpan={7}>No hay clientes para mostrar.</td>
               </tr>

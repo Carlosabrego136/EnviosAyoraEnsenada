@@ -1,10 +1,18 @@
 // Recibe los dos QR escaneados (vendedor y cliente) y crea el registro del paquete.
 const { query } = require('../../lib/db');
 
+// La foto viaja como base64 dentro del cuerpo de la petición, así que subimos
+// el límite normal de Next.js (1mb) para que no se rechacen fotos de celular.
+export const config = {
+  api: {
+    bodyParser: { sizeLimit: '8mb' },
+  },
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { vendedor_qr, cliente_qr, paqueteria_id, numero_guia } = req.body;
+  const { vendedor_qr, cliente_qr, paqueteria_id, numero_guia, foto } = req.body;
 
   if (!vendedor_qr || !cliente_qr) {
     return res.status(400).json({ error: 'Faltan los códigos QR de vendedor y/o cliente' });
@@ -36,10 +44,10 @@ export default async function handler(req, res) {
   const cliente = clienteRes.rows[0];
 
   const { rows } = await query(
-    `INSERT INTO paquetes (vendedor_id, cliente_id, categoria_id, paqueteria_id, numero_guia, estado)
-     VALUES ($1, $2, $3, $4, $5, 'recibido')
+    `INSERT INTO paquetes (vendedor_id, cliente_id, categoria_id, paqueteria_id, numero_guia, estado, foto)
+     VALUES ($1, $2, $3, $4, $5, 'recibido', $6)
      RETURNING *`,
-    [vendedor.id, cliente.id, cliente.categoria_id, paqueteria_id || null, numero_guia || null]
+    [vendedor.id, cliente.id, cliente.categoria_id, paqueteria_id || null, numero_guia || null, foto || null]
   );
 
   return res.status(201).json({

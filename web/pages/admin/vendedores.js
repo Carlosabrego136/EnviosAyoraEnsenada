@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Layout from '../../components/Layout';
 
@@ -8,6 +8,7 @@ export default function Vendedores() {
   const [mostrarInactivos, setMostrarInactivos] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
   const [nombreEdicion, setNombreEdicion] = useState('');
+  const [busqueda, setBusqueda] = useState('');
 
   async function cargar() {
     const url = `/api/vendedores${mostrarInactivos ? '?incluirInactivos=1' : ''}`;
@@ -59,6 +60,12 @@ export default function Vendedores() {
     cargar();
   }
 
+  const vendedoresFiltrados = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    if (!q) return vendedores;
+    return vendedores.filter((v) => v.nombre.toLowerCase().includes(q));
+  }, [vendedores, busqueda]);
+
   return (
     <Layout>
       <div className="card">
@@ -75,6 +82,13 @@ export default function Vendedores() {
       </div>
 
       <div className="card">
+        <label>Buscar vendedor</label>
+        <input
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Escribe un nombre para filtrar..."
+        />
+
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
           <input
             type="checkbox"
@@ -86,7 +100,7 @@ export default function Vendedores() {
         </label>
 
         <div className="table-wrap">
-        <table>
+        <table className="tabla-responsiva">
           <thead>
             <tr>
               <th>Nombre</th>
@@ -96,9 +110,9 @@ export default function Vendedores() {
             </tr>
           </thead>
           <tbody>
-            {vendedores.map((v) => (
+            {vendedoresFiltrados.map((v) => (
               <tr key={v.id} style={{ opacity: v.activo ? 1 : 0.55 }}>
-                <td>
+                <td data-label="Nombre">
                   {editandoId === v.id ? (
                     <input
                       value={nombreEdicion}
@@ -109,17 +123,17 @@ export default function Vendedores() {
                     v.nombre
                   )}
                 </td>
-                <td>
+                <td data-label="Estado">
                   <span className={`badge ${v.activo ? 'entregado' : 'recibido'}`}>
                     {v.activo ? 'Activo' : 'Desactivado'}
                   </span>
                 </td>
-                <td>
+                <td data-label="QR">
                   <Link className="btn secondary" href={`/qr/vendedor/${v.id}`}>
                     Ver / imprimir QR
                   </Link>
                 </td>
-                <td>
+                <td data-label="Acciones">
                   {editandoId === v.id ? (
                     <>
                       <button className="btn" onClick={() => guardarEdicion(v.id)}>Guardar</button>{' '}
@@ -136,7 +150,7 @@ export default function Vendedores() {
                 </td>
               </tr>
             ))}
-            {vendedores.length === 0 && (
+            {vendedoresFiltrados.length === 0 && (
               <tr>
                 <td colSpan={4}>No hay vendedores para mostrar.</td>
               </tr>

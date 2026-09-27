@@ -18,6 +18,41 @@ a { color: inherit; }
 }
 .table-wrap table { min-width: 640px; }
 
+/* En pantallas angostas, las tablas marcadas como "tabla-responsiva" se
+   convierten en tarjetas apiladas (una por registro) para que TODA la
+   información (incluyendo Estado y Acciones) se vea de un jalón, sin tener
+   que deslizar el dedo hacia los lados. */
+@media (max-width: 640px) {
+  .table-wrap table.tabla-responsiva { min-width: 0; width: 100%; }
+  .tabla-responsiva thead { display: none; }
+  .tabla-responsiva, .tabla-responsiva tbody, .tabla-responsiva tr, .tabla-responsiva td {
+    display: block;
+    width: 100%;
+  }
+  .tabla-responsiva tr {
+    margin-bottom: 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .tabla-responsiva td {
+    border-bottom: none;
+    padding: 6px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    text-align: right;
+  }
+  .tabla-responsiva td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: #6b7280;
+    text-align: left;
+    flex-shrink: 0;
+  }
+}
+
 /* --- Fondo de video general para todo el sistema (sin overlay, 100% visible) --- */
 .bg-video {
   position: fixed;

@@ -17,6 +17,8 @@ export default function Escanear() {
   const [paqueterias, setPaqueterias] = useState([]);
   const [paqueteriaId, setPaqueteriaId] = useState('');
   const [numeroGuia, setNumeroGuia] = useState('');
+  const [fotoBase64, setFotoBase64] = useState(null);
+  const [fotoCargando, setFotoCargando] = useState(false);
   const [mensaje, setMensaje] = useState(null);
   const [error, setError] = useState(null);
 
@@ -109,6 +111,35 @@ export default function Escanear() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paso]);
 
+  // Toma la foto elegida/tomada con la cámara del celular, la reduce de tamaño
+  // (para que no pese varios MB) y la deja lista en base64 para guardarla.
+  function manejarFoto(e) {
+    const archivo = e.target.files && e.target.files[0];
+    if (!archivo) return;
+    setFotoCargando(true);
+    const lector = new FileReader();
+    lector.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const maxAncho = 900;
+        const escala = Math.min(1, maxAncho / img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width * escala;
+        canvas.height = img.height * escala;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        setFotoBase64(canvas.toDataURL('image/jpeg', 0.7));
+        setFotoCargando(false);
+      };
+      img.src = lector.result;
+    };
+    lector.readAsDataURL(archivo);
+  }
+
+  function quitarFoto() {
+    setFotoBase64(null);
+  }
+
   async function guardar() {
     setError(null);
     setMensaje(null);
@@ -121,6 +152,7 @@ export default function Escanear() {
           cliente_qr: clienteQr,
           paqueteria_id: paqueteriaId || null,
           numero_guia: numeroGuia || null,
+          foto: fotoBase64 || null,
         }),
       });
       const data = await res.json();
@@ -134,6 +166,7 @@ export default function Escanear() {
       setClienteQr('');
       setPaqueteriaId('');
       setNumeroGuia('');
+      setFotoBase64(null);
       setPaso(2);
     } catch (err) {
       setError(err.message);
@@ -146,6 +179,7 @@ export default function Escanear() {
     setVendedorNombre('');
     setClienteQr('');
     setPaquetesGuardados(0);
+    setFotoBase64(null);
     setError(null);
     setMensaje(null);
     procesandoRef.current = false;
@@ -154,6 +188,7 @@ export default function Escanear() {
 
   function reiniciar() {
     setClienteQr('');
+    setFotoBase64(null);
     setError(null);
     setMensaje(null);
     procesandoRef.current = false;
@@ -264,6 +299,24 @@ export default function Escanear() {
               onChange={(e) => setNumeroGuia(e.target.value)}
               placeholder="Ej. 313103"
             />
+
+            <label>Foto del paquete (opcional)</label>
+            {!fotoBase64 && (
+              <input type="file" accept="image/*" capture="environment" onChange={manejarFoto} />
+            )}
+            {fotoCargando && <p style={{ fontSize: 13, color: '#6b7280' }}>Procesando foto...</p>}
+            {fotoBase64 && (
+              <div style={{ marginBottom: 12 }}>
+                <img
+                  src={fotoBase64}
+                  alt="Foto del paquete"
+                  style={{ width: '100%', maxWidth: 260, borderRadius: 8, display: 'block', marginBottom: 6 }}
+                />
+                <button className="btn secondary" onClick={quitarFoto} style={{ fontSize: 12, padding: '6px 10px' }}>
+                  Quitar foto
+                </button>
+              </div>
+            )}
 
             <button className="btn" onClick={guardar}>
               Guardar paquete

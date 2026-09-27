@@ -67,6 +67,10 @@ CREATE TABLE IF NOT EXISTS paquetes (
   actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Foto del paquete al momento de recibirlo (guardada como imagen en base64).
+-- Se agrega con ALTER porque la tabla paquetes puede ya existir de antes.
+ALTER TABLE paquetes ADD COLUMN IF NOT EXISTS foto TEXT;
+
 CREATE INDEX IF NOT EXISTS idx_paquetes_categoria ON paquetes (categoria_id);
 CREATE INDEX IF NOT EXISTS idx_paquetes_estado ON paquetes (estado);
 CREATE INDEX IF NOT EXISTS idx_paquetes_capturado_en ON paquetes (capturado_en);

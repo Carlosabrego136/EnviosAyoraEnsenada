@@ -27,5 +27,14 @@ export default async function handler(req, res) {
     return res.status(200).json(rows);
   }
 
+  if (req.method === 'DELETE') {
+    // Vacía TODOS los paquetes (y sus notificaciones) para empezar de cero,
+    // por ejemplo al iniciar una nueva semana. No toca vendedores ni clientes.
+    const { rows } = await query('SELECT COUNT(*) FROM paquetes');
+    await query('DELETE FROM notificaciones');
+    await query('DELETE FROM paquetes');
+    return res.status(200).json({ ok: true, eliminados: Number(rows[0].count) });
+  }
+
   res.status(405).end();
 }
