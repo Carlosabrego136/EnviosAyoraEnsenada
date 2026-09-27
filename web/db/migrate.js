@@ -3,6 +3,7 @@ require('dotenv').config({ path: '.env.local' });
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
+const { pgConfig } = require('../lib/pg-connection');
 
 async function main() {
   if (!process.env.DATABASE_URL) {
@@ -10,10 +11,7 @@ async function main() {
     process.exit(1);
   }
 
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
-  });
+  const pool = new Pool(pgConfig(process.env.DATABASE_URL));
 
   const sql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
 

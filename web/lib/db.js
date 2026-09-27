@@ -1,5 +1,6 @@
 // Conexión a la base de datos Aiven (Postgres)
 const { Pool } = require('pg');
+const { pgConfig } = require('./pg-connection');
 
 let pool;
 
@@ -10,10 +11,7 @@ function getPool() {
         'Falta DATABASE_URL en el archivo .env.local (ver .env.example y tus credenciales de Aiven).'
       );
     }
-    pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false }, // Aiven requiere SSL
-    });
+    pool = new Pool(pgConfig(process.env.DATABASE_URL));
   }
   return pool;
 }

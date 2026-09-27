@@ -14,6 +14,7 @@ const path = require('path');
 const XLSX = require('xlsx');
 const { Pool } = require('pg');
 const { nanoid } = require('nanoid');
+const { pgConfig } = require('../lib/pg-connection');
 
 const archivo = process.argv[2];
 if (!archivo) {
@@ -21,10 +22,7 @@ if (!archivo) {
   process.exit(1);
 }
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = new Pool(pgConfig(process.env.DATABASE_URL));
 
 function normalizar(nombre) {
   return (nombre || '').toString().trim().replace(/\s+/g, ' ');
