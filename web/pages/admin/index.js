@@ -86,6 +86,7 @@ export default function AdminPanel() {
         {cargando ? (
           <p>Cargando...</p>
         ) : (
+          <div className="table-wrap">
           <table>
             <thead>
               <tr>
@@ -134,6 +135,7 @@ export default function AdminPanel() {
               )}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </Layout>

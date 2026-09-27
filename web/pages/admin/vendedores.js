@@ -84,6 +84,7 @@ export default function Vendedores() {
           Mostrar también los desactivados
         </label>
 
+        <div className="table-wrap">
         <table>
           <thead>
             <tr>
@@ -141,6 +142,7 @@ export default function Vendedores() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </Layout>
   );

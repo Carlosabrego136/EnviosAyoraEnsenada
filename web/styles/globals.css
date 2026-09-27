@@ -2,11 +2,21 @@
 html, body {
   margin: 0;
   height: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
   font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   background: transparent;
   color: #1a1a1a;
 }
 a { color: inherit; }
+
+/* Las tablas anchas (muchas columnas) se deslizan solas de lado en vez de
+   empujar toda la página, para que el fondo de video no se corte en celular. */
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.table-wrap table { min-width: 640px; }
 
 /* --- Fondo de video general para todo el sistema (sin overlay, 100% visible) --- */
 .bg-video {

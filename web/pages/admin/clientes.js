@@ -108,6 +108,7 @@ export default function Clientes() {
           Mostrar también los desactivados
         </label>
 
+        <div className="table-wrap">
         <table>
           <thead>
             <tr>
@@ -198,6 +199,7 @@ export default function Clientes() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </Layout>
   );
