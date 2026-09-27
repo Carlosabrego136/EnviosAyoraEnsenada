@@ -3,10 +3,12 @@ const { nanoid } = require('nanoid');
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
+    const incluirInactivos = req.query.incluirInactivos === '1';
     const { rows } = await query(
       `SELECT cl.*, c.nombre AS categoria_nombre
        FROM clientes cl
        LEFT JOIN categorias c ON c.id = cl.categoria_id
+       ${incluirInactivos ? '' : 'WHERE cl.activo = true'}
        ORDER BY cl.nombre ASC`
     );
     return res.status(200).json(rows);
