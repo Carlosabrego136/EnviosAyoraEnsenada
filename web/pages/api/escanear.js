@@ -10,6 +10,18 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Faltan los códigos QR de vendedor y/o cliente' });
   }
 
+  if (vendedor_qr === cliente_qr) {
+    return res.status(400).json({
+      error: 'Escaneaste el mismo código dos veces. Escanea primero el QR del vendedor y luego el QR (distinto) del cliente.',
+    });
+  }
+  if (!vendedor_qr.startsWith('VEND-')) {
+    return res.status(400).json({ error: 'El primer código escaneado no es un código de VENDEDOR válido' });
+  }
+  if (!cliente_qr.startsWith('CLI-')) {
+    return res.status(400).json({ error: 'El segundo código escaneado no es un código de CLIENTE válido' });
+  }
+
   const vendedorRes = await query('SELECT * FROM vendedores WHERE qr_codigo = $1', [vendedor_qr]);
   const clienteRes = await query('SELECT * FROM clientes WHERE qr_codigo = $1', [cliente_qr]);
 
