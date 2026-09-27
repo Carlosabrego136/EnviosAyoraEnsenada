@@ -1,11 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import Layout from '../components/Layout';
 
-// Flujo: 1) escanea QR del vendedor  2) escanea QR del cliente  3) (opcional) paquetería/guía  4) guarda
+// Flujo:
+//  1) escanea QR del vendedor (UNA vez)
+//  2) escanea QR del cliente
+//  3) (opcional) paquetería/guía y guarda
+//  4) regresa directo al paso 2 para escanear al SIGUIENTE cliente del MISMO vendedor,
+//     sin tener que volver a escanear al vendedor — útil para vendedores que entregan
+//     muchos paquetes seguidos. Solo se vuelve a escanear vendedor si se cambia de vendedor.
 export default function Escanear() {
   const [paso, setPaso] = useState(1);
   const [vendedorQr, setVendedorQr] = useState('');
+  const [vendedorNombre, setVendedorNombre] = useState('');
   const [clienteQr, setClienteQr] = useState('');
+  const [paquetesGuardados, setPaquetesGuardados] = useState(0); // contador de la ráfaga actual
   const [paqueterias, setPaqueterias] = useState([]);
   const [paqueteriaId, setPaqueteriaId] = useState('');
   const [numeroGuia, setNumeroGuia] = useState('');
@@ -68,6 +76,8 @@ export default function Escanear() {
             procesandoRef.current = true;
             setError(null);
             setVendedorQr(decodedText);
+            setVendedorNombre('');
+            setPaquetesGuardados(0);
             setPaso(2);
           } else if (pasoActual === 2) {
             if (!decodedText.startsWith('CLI-')) {
@@ -116,19 +126,33 @@ export default function Escanear() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al guardar');
       setMensaje(`Guardado: ${data.vendedor} → ${data.cliente}`);
-      // reiniciar para el siguiente paquete
-      setVendedorQr('');
+      setVendedorNombre(data.vendedor);
+      setPaquetesGuardados((n) => n + 1);
+
+      // Seguimos con el MISMO vendedor: regresamos directo al paso 2 para
+      // escanear al siguiente cliente, sin volver a pedir el QR del vendedor.
       setClienteQr('');
       setPaqueteriaId('');
       setNumeroGuia('');
-      setPaso(1);
+      setPaso(2);
     } catch (err) {
       setError(err.message);
     }
   }
 
-  function reiniciar() {
+  // Termina la ráfaga del vendedor actual y vuelve a pedir el QR de un nuevo vendedor.
+  function cambiarVendedor() {
     setVendedorQr('');
+    setVendedorNombre('');
+    setClienteQr('');
+    setPaquetesGuardados(0);
+    setError(null);
+    setMensaje(null);
+    procesandoRef.current = false;
+    setPaso(1);
+  }
+
+  function reiniciar() {
     setClienteQr('');
     setError(null);
     setMensaje(null);
@@ -136,6 +160,9 @@ export default function Escanear() {
     if (paso === 1) {
       // ya estamos en el paso 1: solo reiniciamos la cámara por si quedó en mal estado
       iniciarScanner();
+    } else if (vendedorQr) {
+      // seguimos con el mismo vendedor, solo reiniciamos el escaneo del cliente
+      setPaso(2);
     } else {
       setPaso(1);
     }
@@ -145,8 +172,38 @@ export default function Escanear() {
     <Layout>
       <div className="card">
         <h2>Capturar paquete</h2>
+
+        {vendedorQr && (paso === 2 || paso === 3) && (
+          <div
+            style={{
+              background: '#eef2ff',
+              border: '1px solid #c7d2fe',
+              borderRadius: 8,
+              padding: '10px 12px',
+              marginBottom: 14,
+              fontSize: 14,
+            }}
+          >
+            Vendedor actual: <b>{vendedorNombre || vendedorQr}</b>
+            {paquetesGuardados > 0 && (
+              <span style={{ color: '#4338ca' }}> — {paquetesGuardados} paquete(s) capturado(s) en esta ráfaga</span>
+            )}
+            <p style={{ margin: '6px 0 8px', fontSize: 12.5, color: '#4338ca' }}>
+              Puedes escanear solo <b>este</b> paquete y salir cuando quieras, o seguir escaneando
+              más clientes de este mismo vendedor — tú decides, nada te obliga a continuar.
+            </p>
+            <button
+              className="btn secondary"
+              style={{ fontSize: 12, padding: '6px 10px' }}
+              onClick={cambiarVendedor}
+            >
+              Terminar / cambiar de vendedor
+            </button>
+          </div>
+        )}
+
         <p>
-          Paso {paso} de 3 —{' '}
+          Paso {paso === 1 ? '1' : paso === 2 ? '2' : '3'} —{' '}
           {paso === 1 && 'escanea el QR del VENDEDOR'}
           {paso === 2 && 'escanea el QR del CLIENTE'}
           {paso === 3 && 'confirma y guarda'}
@@ -161,13 +218,15 @@ export default function Escanear() {
         {paso === 2 && (
           <p style={{ fontSize: 13, color: '#4b5563', marginTop: -6 }}>
             Ahora apunta la cámara al código QR <b>impreso</b> del cliente que va a recibir el
-            paquete (su tarjeta o el que tiene pegado en su casillero).
+            paquete. Si este vendedor entrega varios paquetes, puedes seguir escaneando cliente
+            tras cliente sin volver a escanear al vendedor.
           </p>
         )}
         {paso === 3 && (
           <p style={{ fontSize: 13, color: '#4b5563', marginTop: -6 }}>
-            Revisa que el vendedor y el cliente sean los correctos, agrega la paquetería/guía si
-            la tienes, y guarda para registrar el paquete.
+            Revisa que el cliente sea el correcto, agrega la paquetería/guía si la tienes, y
+            guarda. Al guardar, regresas directo a escanear el siguiente cliente de este mismo
+            vendedor.
           </p>
         )}
 
@@ -186,8 +245,6 @@ export default function Escanear() {
         {paso === 3 && (
           <div>
             <p>
-              Vendedor QR: <b>{vendedorQr}</b>
-              <br />
               Cliente QR: <b>{clienteQr}</b>
             </p>
 

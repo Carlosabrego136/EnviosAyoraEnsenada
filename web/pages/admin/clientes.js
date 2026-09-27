@@ -118,6 +118,7 @@ export default function Clientes() {
               <th>Categoría</th>
               <th>Estado</th>
               <th>QR</th>
+              <th>Historial</th>
               <th>Acciones</th>
             </tr>
           </thead>
@@ -176,6 +177,11 @@ export default function Clientes() {
                     </Link>
                   </td>
                   <td>
+                    <Link className="btn secondary" href={`/admin/clientes/${c.id}/historial`}>
+                      Ver historial
+                    </Link>
+                  </td>
+                  <td>
                     {enEdicion ? (
                       <>
                         <button className="btn" onClick={() => guardarEdicion(c.id)}>Guardar</button>{' '}
@@ -195,7 +201,7 @@ export default function Clientes() {
             })}
             {clientes.length === 0 && (
               <tr>
-                <td colSpan={6}>No hay clientes para mostrar.</td>
+                <td colSpan={7}>No hay clientes para mostrar.</td>
               </tr>
             )}
           </tbody>
