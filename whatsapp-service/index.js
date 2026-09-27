@@ -1,5 +1,5 @@
 // ============================================================
-// Microservicio de WhatsApp — Envíos Ayora Ensenada
+// Microservicio de WhatsApp — ENVIOS AYORA
 // ============================================================
 // Este proceso debe quedar corriendo TODO EL TIEMPO (no en Vercel,
 // que es serverless). Se recomienda un servicio tipo Render/Railway

@@ -37,7 +37,7 @@ export default function Home() {
     <Layout>
       <section className="hero">
         <span className="hero-eyebrow">Sistema de envíos</span>
-        <h1 className="hero-title">Envíos Ayora Cajón 24</h1>
+        <h1 className="hero-title">ENVIOS AYORA</h1>
         <p className="hero-subtitle">
           Captura por código QR, organización por bloques y seguimiento de tus
           paquetes, todo en un solo lugar.

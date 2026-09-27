@@ -1,4 +1,4 @@
-# Envíos Ayora Ensenada — Sistema de captura por QR y seguimiento de paquetes
+# ENVIOS AYORA — Sistema de captura por QR y seguimiento de paquetes
 
 Sistema para automatizar la captura de paquetes (vendedor → cliente) usando
 códigos QR, organizarlos por categoría/bloque (igual que las pestañas de tu
