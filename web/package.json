@@ -11,7 +11,8 @@
     "build": "next build",
     "start": "next start",
     "db:migrate": "node db/migrate.js",
-    "db:import": "node db/import-excel.js"
+    "db:import": "node db/import-excel.js",
+    "db:swap": "node db/swap-vendedores-clientes.js"
   },
   "dependencies": {
     "next": "13.5.6",
