@@ -58,10 +58,13 @@ export default function AdminPanel() {
       return;
     }
     const confirmacion = prompt(
-      `Vas a eliminar TODOS los paquetes registrados (${paquetes.length} en total), de todos los clientes. Esto NO afecta a tus vendedores ni clientes, solo la lista de paquetes.\n\nPara confirmar, escribe la palabra BORRAR (en mayúsculas):`
+      `Vas a eliminar TODOS los paquetes registrados (${paquetes.length} en total), de todos los clientes. Esto NO afecta a tus vendedores ni clientes, solo la lista de paquetes.\n\nPara confirmar, escribe la palabra BORRAR:`
     );
-    if (confirmacion !== 'BORRAR') {
-      if (confirmacion !== null) alert('No escribiste "BORRAR" exactamente, así que no se eliminó nada.');
+    if (confirmacion === null) return; // canceló el cuadro de confirmación
+    // Toleramos espacios de sobra y mayúsculas/minúsculas (ej. "borrar", " Borrar ")
+    // para que un detalle de captura en el celular no impida vaciar la lista.
+    if (confirmacion.trim().toUpperCase() !== 'BORRAR') {
+      alert('No escribiste "BORRAR" exactamente, así que no se eliminó nada.');
       return;
     }
     setVaciando(true);
@@ -74,6 +77,8 @@ export default function AdminPanel() {
       }
       alert(`Listo, se eliminaron ${data.eliminados} paquete(s). Ya puedes empezar la semana de cero.`);
       cargar();
+    } catch (err) {
+      alert('No se pudo conectar para vaciar los paquetes. Revisa tu conexión e intenta de nuevo.');
     } finally {
       setVaciando(false);
     }

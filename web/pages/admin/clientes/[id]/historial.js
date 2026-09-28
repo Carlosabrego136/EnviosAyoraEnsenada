@@ -120,6 +120,20 @@ export default function HistorialCliente() {
       base64AArchivo(p.foto, `paquete-${i + 1}.jpg`)
     );
     const texto = armarTextoResumen(cliente, paquetes);
+
+    // Respaldo: copiamos el texto completo al portapapeles ANTES de abrir el
+    // menú de compartir. Algunas apps (como el inbox/Messenger de Facebook)
+    // ignoran el texto cuando se comparten varias fotos a la vez y solo
+    // muestran las imágenes — si eso pasa, el usuario ya tiene el texto
+    // completo (con vendedor y todos los paquetes) listo para pegar como
+    // descripción. En WhatsApp normalmente sí llega el texto junto con las
+    // fotos, así que ahí no hace falta pegarlo.
+    try {
+      await navigator.clipboard.writeText(texto);
+    } catch (err) {
+      // si el portapapeles no está disponible, seguimos sin este respaldo
+    }
+
     try {
       if (navigator.canShare && navigator.canShare({ files: archivos })) {
         await navigator.share({ text: texto, files: archivos });
@@ -136,6 +150,11 @@ export default function HistorialCliente() {
   async function compartirPaquete(p) {
     if (!cliente) return;
     const texto = textoPaquete(cliente, p);
+    try {
+      await navigator.clipboard.writeText(texto);
+    } catch (err) {
+      // sin portapapeles disponible, seguimos sin este respaldo
+    }
     try {
       if (p.foto) {
         const archivo = base64AArchivo(p.foto, 'paquete.jpg');
@@ -189,6 +208,14 @@ export default function HistorialCliente() {
               <p style={{ fontSize: 12.5, color: '#6b7280', marginTop: -6, marginBottom: 14 }}>
                 Para compartir texto y foto juntos en un solo paso, abre esta página desde el
                 celular (funciona en Chrome de Android y Safari de iPhone).
+              </p>
+            )}
+            {puedeCompartirArchivos && (
+              <p style={{ fontSize: 12.5, color: '#6b7280', marginTop: -6, marginBottom: 14 }}>
+                Al compartir con fotos, también copiamos el texto completo (con vendedor y todos los
+                paquetes) al portapapeles. En WhatsApp normalmente llega junto con las fotos; en otras
+                apps (como Messenger/inbox) a veces solo llegan las fotos — si eso pasa, pega el texto
+                (mantén presionado y elige "Pegar") como descripción.
               </p>
             )}
 

@@ -37,6 +37,13 @@ const ACCIONES = [
     texto: 'Calcula el precio de un envío según el tabulador oficial.',
     clase: 'accion-plata',
   },
+  {
+    href: '/admin/bloques',
+    icono: '🗂️',
+    titulo: 'Bloques',
+    texto: 'Agrega, renombra o elimina los bloques/categorías tú mismo.',
+    clase: 'accion-plata',
+  },
 ];
 
 export default function Home() {
