@@ -148,6 +148,7 @@ export default function AdminPanel() {
                 <th>Vendedor</th>
                 <th>Categoría</th>
                 <th>Paquetería / Guía</th>
+                <th>Foto</th>
                 <th>Estado</th>
                 <th>Acciones</th>
               </tr>
@@ -160,6 +161,19 @@ export default function AdminPanel() {
                   <td data-label="Categoría">{p.categoria_nombre || '—'}</td>
                   <td data-label="Paquetería / Guía">
                     {p.paqueteria_nombre || '—'} {p.numero_guia ? `(${p.numero_guia})` : ''}
+                  </td>
+                  <td data-label="Foto">
+                    {p.foto ? (
+                      <a href={p.foto} target="_blank" rel="noreferrer">
+                        <img
+                          src={p.foto}
+                          alt="Foto del paquete"
+                          style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 6, display: 'block' }}
+                        />
+                      </a>
+                    ) : (
+                      <span style={{ fontSize: 12, color: '#9ca3af' }}>Sin foto</span>
+                    )}
                   </td>
                   <td data-label="Estado">
                     <span className={`badge ${p.estado}`}>{ESTADO_LABEL[p.estado]}</span>
@@ -191,7 +205,7 @@ export default function AdminPanel() {
               ))}
               {filtrados.length === 0 && (
                 <tr>
-                  <td colSpan={6}>No hay paquetes que coincidan.</td>
+                  <td colSpan={7}>No hay paquetes que coincidan.</td>
                 </tr>
               )}
             </tbody>
