@@ -15,6 +15,8 @@ export default async function handler(req, res) {
 
   if (req.method === 'PATCH') {
     const { estado, numero_guia, paqueteria_id, notas } = req.body;
+    // Quitamos espacios de sobra para que el rastreo público siempre lo encuentre.
+    const numeroGuiaLimpio = typeof numero_guia === 'string' ? numero_guia.trim() : numero_guia;
     const { rows } = await query(
       `UPDATE paquetes
        SET estado = COALESCE($1, estado),
@@ -23,7 +25,7 @@ export default async function handler(req, res) {
            notas = COALESCE($4, notas)
        WHERE id = $5
        RETURNING *`,
-      [estado, numero_guia, paqueteria_id, notas, id]
+      [estado, numeroGuiaLimpio, paqueteria_id, notas, id]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Paquete no encontrado' });
 

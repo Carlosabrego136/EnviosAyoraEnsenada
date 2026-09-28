@@ -43,11 +43,15 @@ export default async function handler(req, res) {
   const vendedor = vendedorRes.rows[0];
   const cliente = clienteRes.rows[0];
 
+  // Quitamos espacios de sobra al inicio/final para que el número de guía
+  // quede limpio (ayuda a que el rastreo público lo encuentre siempre).
+  const numeroGuiaLimpio = numero_guia ? numero_guia.trim() : null;
+
   const { rows } = await query(
     `INSERT INTO paquetes (vendedor_id, cliente_id, categoria_id, paqueteria_id, numero_guia, estado, foto)
      VALUES ($1, $2, $3, $4, $5, 'recibido', $6)
      RETURNING *`,
-    [vendedor.id, cliente.id, cliente.categoria_id, paqueteria_id || null, numero_guia || null, foto || null]
+    [vendedor.id, cliente.id, cliente.categoria_id, paqueteria_id || null, numeroGuiaLimpio || null, foto || null]
   );
 
   // Guardamos el primer paso del historial (para la línea de tiempo pública de rastreo).
