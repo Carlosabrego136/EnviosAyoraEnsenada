@@ -71,6 +71,17 @@ export default function Clientes() {
     cargar();
   }
 
+  async function eliminar(c) {
+    if (!confirm(`¿Eliminar permanentemente a "${c.nombre}"? Esta acción no se puede deshacer.`)) return;
+    const res = await fetch(`/api/clientes/${c.id}`, { method: 'DELETE' });
+    if (res.ok) {
+      cargar();
+      return;
+    }
+    const data = await res.json().catch(() => ({}));
+    alert(data.error || 'No se pudo eliminar al cliente.');
+  }
+
   const clientesFiltrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     if (!q) return clientes;
@@ -206,6 +217,13 @@ export default function Clientes() {
                         <button className="btn secondary" onClick={() => iniciarEdicion(c)}>Editar</button>{' '}
                         <button className="btn secondary" onClick={() => alternarActivo(c)}>
                           {c.activo ? 'Desactivar' : 'Reactivar'}
+                        </button>{' '}
+                        <button
+                          className="btn secondary"
+                          style={{ color: '#b91c1c' }}
+                          onClick={() => eliminar(c)}
+                        >
+                          Eliminar
                         </button>
                       </>
                     )}

@@ -60,6 +60,17 @@ export default function Vendedores() {
     cargar();
   }
 
+  async function eliminar(v) {
+    if (!confirm(`¿Eliminar permanentemente a "${v.nombre}"? Esta acción no se puede deshacer.`)) return;
+    const res = await fetch(`/api/vendedores/${v.id}`, { method: 'DELETE' });
+    if (res.ok) {
+      cargar();
+      return;
+    }
+    const data = await res.json().catch(() => ({}));
+    alert(data.error || 'No se pudo eliminar al vendedor.');
+  }
+
   const vendedoresFiltrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     if (!q) return vendedores;
@@ -144,6 +155,13 @@ export default function Vendedores() {
                       <button className="btn secondary" onClick={() => iniciarEdicion(v)}>Editar</button>{' '}
                       <button className="btn secondary" onClick={() => alternarActivo(v)}>
                         {v.activo ? 'Desactivar' : 'Reactivar'}
+                      </button>{' '}
+                      <button
+                        className="btn secondary"
+                        style={{ color: '#b91c1c' }}
+                        onClick={() => eliminar(v)}
+                      >
+                        Eliminar
                       </button>
                     </>
                   )}

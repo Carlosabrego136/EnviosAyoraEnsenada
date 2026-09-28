@@ -119,7 +119,7 @@ export default function Cotizador() {
       if (d.medidas.largo && d.medidas.ancho && d.medidas.alto) {
         texto += `Medidas: ${d.medidas.largo}x${d.medidas.ancho}x${d.medidas.alto} cm · Vol. ${d.volumetrico.toFixed(1)} kg\n`;
       }
-      texto += `Peso facturable: ${d.facturable.toFixed(1)} kg → se cobra el rango de ${d.tier ? d.tier.kg : '60+'} kg\n`;
+      texto += `Peso facturable: ${d.facturable.toFixed(1)} kg\n`;
       if (!d.tier) {
         texto += `⚠️ Esta caja supera los 60 kg del tabulador, necesita cotización especial.\n`;
       } else if (multi) {
@@ -130,14 +130,14 @@ export default function Cotizador() {
       texto += `\n`;
     });
 
-    texto += `Aéreo: ${moneda(r.totalAereo)}\n`;
-    texto += `Terrestre: ${moneda(r.totalTerrestre)}\n`;
-    if (r.incluirBajaPack) texto += `Baja Pack Express: ${moneda(r.totalBajaPack)}\n`;
-
     if (multi) {
-      texto += `\nTotal aéreo: ${moneda(r.totalAereo)}\n`;
+      texto += `Total aéreo: ${moneda(r.totalAereo)}\n`;
       texto += `Total terrestre: ${moneda(r.totalTerrestre)}\n`;
       if (r.incluirBajaPack) texto += `Total Baja Pack Express: ${moneda(r.totalBajaPack)}\n`;
+    } else {
+      texto += `Aéreo: ${moneda(r.totalAereo)}\n`;
+      texto += `Terrestre: ${moneda(r.totalTerrestre)}\n`;
+      if (r.incluirBajaPack) texto += `Baja Pack Express: ${moneda(r.totalBajaPack)}\n`;
     }
 
     if (r.zonaExtendida) {
@@ -145,11 +145,9 @@ export default function Cotizador() {
     }
 
     texto +=
-      `\nNota: checar el C.P. para verificar si hay zona extendida. En caso de que sí, se agregan ${moneda(CARGO_ZONA_EXTENDIDA)} adicionales al servicio.\n` +
       `\nEl pago debe quedar a más tardar el día miércoles para que tu envío salga en la misma semana.\n\n` +
       `Pago:\nDomingo sale lunes\nLunes sale martes\nMartes sale miércoles\nMiércoles sale jueves\n\n` +
-      `Tu cotización ya incluye la boleta mínima de aduana para que tu caja pueda salir a destino. Sin embargo, todos los envíos terrestres son susceptibles de ser revisados en la aduana y que el agente aduanal determine pagos de impuestos adicionales; estos corren totalmente por tu cuenta y se deben pagar de manera inmediata para que tu caja siga su curso.\n\n` +
-      `Las medidas y el peso son variables y van en rangos, estos precios son orientativos según el tabulador oficial.`;
+      `Tu cotización ya incluye la boleta mínima de aduana para que tu caja pueda salir a destino. Sin embargo, todos los envíos terrestres son susceptibles de ser revisados en la aduana y que el agente aduanal determine pagos de impuestos adicionales; estos corren totalmente por tu cuenta y se deben pagar de manera inmediata para que tu caja siga su curso.`;
 
     return texto;
   }
