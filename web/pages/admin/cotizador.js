@@ -174,22 +174,33 @@ export default function Cotizador() {
     setCompartiendo(true);
     setAvisoCompartir('');
     try {
-      const res = await fetch('/datos-pago.jpg');
-      const blob = await res.blob();
-      const archivo = new File([blob], 'datos-de-pago.jpg', { type: blob.type || 'image/jpeg' });
+      const [resPago, resPoliticas] = await Promise.all([
+        fetch('/datos-pago.jpg'),
+        fetch('/politicas-almacenaje.jpg'),
+      ]);
+      const [blobPago, blobPoliticas] = await Promise.all([resPago.blob(), resPoliticas.blob()]);
+      const archivoPago = new File([blobPago], 'datos-de-pago.jpg', { type: blobPago.type || 'image/jpeg' });
+      const archivoPoliticas = new File([blobPoliticas], 'politicas-de-almacenaje.jpg', {
+        type: blobPoliticas.type || 'image/jpeg',
+      });
+      const archivos = [archivoPago, archivoPoliticas];
 
-      if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
-        await navigator.share({ text: texto, files: [archivo] });
+      if (navigator.canShare && navigator.canShare({ files: archivos })) {
+        await navigator.share({ text: texto, files: archivos });
+      } else if (navigator.canShare && navigator.canShare({ files: [archivoPago] })) {
+        // Algunos navegadores solo permiten compartir un archivo a la vez.
+        await navigator.share({ text: texto, files: [archivoPago] });
+        setAvisoCompartir('Tu navegador solo permite adjuntar una imagen a la vez — se envió el texto con los datos de pago. Manda la imagen de políticas de almacenaje por separado.');
       } else if (navigator.share) {
         await navigator.share({ text: texto });
-        setAvisoCompartir('Tu navegador no permite compartir la imagen junto con el texto — se compartió solo el texto. Manda la imagen de datos de pago por separado.');
+        setAvisoCompartir('Tu navegador no permite compartir imágenes junto con el texto — se compartió solo el texto. Manda las imágenes de datos de pago y políticas por separado.');
       } else {
         await navigator.clipboard.writeText(texto);
-        setAvisoCompartir('Tu navegador no soporta compartir directo. Copiamos el texto al portapapeles — manda la imagen de datos de pago por separado.');
+        setAvisoCompartir('Tu navegador no soporta compartir directo. Copiamos el texto al portapapeles — manda las imágenes por separado.');
       }
     } catch (err) {
       if (err.name !== 'AbortError') {
-        setAvisoCompartir('No se pudo compartir. Intenta de nuevo o comparte el texto y la imagen por separado.');
+        setAvisoCompartir('No se pudo compartir. Intenta de nuevo o comparte el texto y las imágenes por separado.');
       }
     } finally {
       setCompartiendo(false);
@@ -356,7 +367,7 @@ export default function Cotizador() {
               Enviar por WhatsApp (solo texto)
             </button>
             <button className="btn secondary" onClick={compartirConDatosDePago} disabled={compartiendo}>
-              {compartiendo ? 'Compartiendo...' : '📎 Compartir con datos de pago'}
+              {compartiendo ? 'Compartiendo...' : '📎 Compartir con datos de pago y políticas'}
             </button>
           </div>
           {avisoCompartir && (
@@ -381,9 +392,18 @@ export default function Cotizador() {
           </pre>
 
           <p style={{ fontSize: 12.5, color: '#6b7280', marginTop: 10 }}>
-            Vista previa de los datos de pago que se adjuntan al compartir:
+            Vista previa de las imágenes que se adjuntan al compartir:
           </p>
-          <img src="/datos-pago.jpg" alt="Datos de pago" style={{ maxWidth: 280, borderRadius: 10, border: '1px solid #eee' }} />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+            <div>
+              <img src="/datos-pago.jpg" alt="Datos de pago" style={{ maxWidth: 240, borderRadius: 10, border: '1px solid #eee', display: 'block' }} />
+              <p style={{ fontSize: 11.5, color: '#9ca3af', textAlign: 'center', marginTop: 4 }}>Datos de pago</p>
+            </div>
+            <div>
+              <img src="/politicas-almacenaje.jpg" alt="Políticas de almacenaje y multas" style={{ maxWidth: 240, borderRadius: 10, border: '1px solid #eee', display: 'block' }} />
+              <p style={{ fontSize: 11.5, color: '#9ca3af', textAlign: 'center', marginTop: 4 }}>Políticas de almacenaje y multas</p>
+            </div>
+          </div>
         </div>
       )}
 
