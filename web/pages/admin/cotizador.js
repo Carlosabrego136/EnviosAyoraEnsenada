@@ -119,6 +119,7 @@ export default function Cotizador() {
       if (d.medidas.largo && d.medidas.ancho && d.medidas.alto) {
         texto += `Medidas: ${d.medidas.largo}x${d.medidas.ancho}x${d.medidas.alto} cm · Vol. ${d.volumetrico.toFixed(1)} kg\n`;
       }
+      texto += `Peso facturable: ${d.facturable.toFixed(1)} kg → se cobra el rango de ${d.tier ? d.tier.kg : '60+'} kg\n`;
       if (!d.tier) {
         texto += `⚠️ Esta caja supera los 60 kg del tabulador, necesita cotización especial.\n`;
       } else if (multi) {
