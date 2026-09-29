@@ -110,9 +110,10 @@ export default function ImprimirQr() {
               <p className="iq-etiqueta">{t.tipo === 'vendedor' ? 'Vendedor' : 'Cliente'}</p>
               <p className="iq-nombre">{t.nombre}</p>
               <img
-                src={`/api/qr/${t.tipo}/${t.id}`}
+                src={`/api/qr-imagen?valor=${encodeURIComponent(t.qrCodigo)}`}
                 alt={`Código QR de ${t.nombre}`}
                 className="iq-imagen"
+                loading="lazy"
               />
               <p className="iq-codigo">{t.qrCodigo}</p>
             </div>
