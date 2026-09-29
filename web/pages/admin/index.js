@@ -12,17 +12,30 @@ const ESTADO_LABEL = {
 export default function AdminPanel() {
   const [paquetes, setPaquetes] = useState([]);
   const [categorias, setCategorias] = useState([]);
+  const [paqueterias, setPaqueterias] = useState([]);
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [cargando, setCargando] = useState(true);
   const [vaciando, setVaciando] = useState(false);
 
+  // Edición de paquetería/guía — se usa cuando ya se armó la caja de la
+  // semana y por fin se sabe con qué paquetería se va a enviar y cuál es
+  // el número de guía (esto casi nunca se conoce al momento de escanear).
+  const [editandoGuiaId, setEditandoGuiaId] = useState(null);
+  const [edicionGuia, setEdicionGuia] = useState({ paqueteria_id: '', numero_guia: '' });
+  const [guardandoGuia, setGuardandoGuia] = useState(false);
+
   async function cargar() {
     setCargando(true);
     const url = filtroCategoria ? `/api/paquetes?categoria=${filtroCategoria}` : '/api/paquetes';
-    const [pRes, cRes] = await Promise.all([fetch(url), fetch('/api/categorias')]);
+    const [pRes, cRes, pqRes] = await Promise.all([
+      fetch(url),
+      fetch('/api/categorias'),
+      fetch('/api/paqueterias'),
+    ]);
     setPaquetes(await pRes.json());
     setCategorias(await cRes.json());
+    setPaqueterias(await pqRes.json());
     setCargando(false);
   }
 
@@ -81,6 +94,41 @@ export default function AdminPanel() {
       alert('No se pudo conectar para vaciar los paquetes. Revisa tu conexión e intenta de nuevo.');
     } finally {
       setVaciando(false);
+    }
+  }
+
+  function iniciarEdicionGuia(p) {
+    setEditandoGuiaId(p.id);
+    setEdicionGuia({
+      paqueteria_id: p.paqueteria_id || '',
+      numero_guia: p.numero_guia || '',
+    });
+  }
+
+  function cancelarEdicionGuia() {
+    setEditandoGuiaId(null);
+  }
+
+  async function guardarGuia(id) {
+    setGuardandoGuia(true);
+    try {
+      const res = await fetch(`/api/paquetes/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paqueteria_id: edicionGuia.paqueteria_id || null,
+          numero_guia: edicionGuia.numero_guia.trim() || null,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert('Error al guardar: ' + (data.error || 'desconocido'));
+        return;
+      }
+      setEditandoGuiaId(null);
+      cargar();
+    } finally {
+      setGuardandoGuia(false);
     }
   }
 
@@ -165,7 +213,56 @@ export default function AdminPanel() {
                   <td data-label="Vendedor">{p.vendedor_nombre}</td>
                   <td data-label="Categoría">{p.categoria_nombre || '—'}</td>
                   <td data-label="Paquetería / Guía">
-                    {p.paqueteria_nombre || '—'} {p.numero_guia ? `(${p.numero_guia})` : ''}
+                    {editandoGuiaId === p.id ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 180 }}>
+                        <select
+                          value={edicionGuia.paqueteria_id}
+                          onChange={(e) => setEdicionGuia({ ...edicionGuia, paqueteria_id: e.target.value })}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <option value="">-- Paquetería --</option>
+                          {paqueterias.map((pq) => (
+                            <option key={pq.id} value={pq.id}>
+                              {pq.nombre}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          value={edicionGuia.numero_guia}
+                          onChange={(e) => setEdicionGuia({ ...edicionGuia, numero_guia: e.target.value })}
+                          placeholder="Número de guía"
+                          style={{ marginBottom: 0 }}
+                        />
+                        <div>
+                          <button
+                            className="btn"
+                            style={{ padding: '6px 10px', fontSize: 12 }}
+                            onClick={() => guardarGuia(p.id)}
+                            disabled={guardandoGuia}
+                          >
+                            {guardandoGuia ? 'Guardando...' : 'Guardar'}
+                          </button>{' '}
+                          <button
+                            className="btn secondary"
+                            style={{ padding: '6px 10px', fontSize: 12 }}
+                            onClick={cancelarEdicionGuia}
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {p.paqueteria_nombre || '—'} {p.numero_guia ? `(${p.numero_guia})` : ''}{' '}
+                        <button
+                          className="btn secondary"
+                          style={{ padding: '4px 8px', fontSize: 11.5, marginTop: 4 }}
+                          onClick={() => iniciarEdicionGuia(p)}
+                        >
+                          {p.numero_guia ? 'Editar guía' : 'Agregar guía'}
+                        </button>
+                      </>
+                    )}
                   </td>
                   <td data-label="Foto">
                     {p.foto ? (
