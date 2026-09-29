@@ -183,12 +183,24 @@ export default function Cotizador() {
       });
       const archivos = [archivoPago, archivoPoliticas];
 
+      // Respaldo: copiamos el texto completo al portapapeles ANTES de abrir el
+      // menú de compartir. WhatsApp normalmente sí manda el texto junto con las
+      // fotos, pero Messenger/inbox y otras apps a veces solo aceptan las fotos
+      // y descartan el texto (lo decide esa app, no nosotros) — con esto, el
+      // texto ya está listo para pegar si hace falta.
+      try {
+        await navigator.clipboard.writeText(texto);
+      } catch (err) {
+        // si el portapapeles no está disponible, seguimos sin este respaldo
+      }
+
       if (navigator.canShare && navigator.canShare({ files: archivos })) {
         await navigator.share({ text: texto, files: archivos });
+        setAvisoCompartir('✅ Enviado. Si lo mandaste por WhatsApp, el texto ya llegó junto con las imágenes. Si lo mandaste por Messenger, Instagram u otra app y no ves el texto, ya lo copiamos por ti: mantén presionado el cuadro de mensaje y elige "Pegar".');
       } else if (navigator.canShare && navigator.canShare({ files: [archivoPago] })) {
         // Algunos navegadores solo permiten compartir un archivo a la vez.
         await navigator.share({ text: texto, files: [archivoPago] });
-        setAvisoCompartir('Tu navegador solo permite adjuntar una imagen a la vez — se envió el texto con los datos de pago. Manda la imagen de políticas de almacenaje por separado.');
+        setAvisoCompartir('Tu navegador solo permite adjuntar una imagen a la vez — se envió el texto con los datos de pago (y ya se copió por si hace falta pegarlo). Manda la imagen de políticas de almacenaje por separado.');
       } else if (navigator.share) {
         await navigator.share({ text: texto });
         setAvisoCompartir('Tu navegador no permite compartir imágenes junto con el texto — se compartió solo el texto. Manda las imágenes de datos de pago y políticas por separado.');

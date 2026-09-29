@@ -137,6 +137,16 @@ export default function HistorialCliente() {
     try {
       if (navigator.canShare && navigator.canShare({ files: archivos })) {
         await navigator.share({ text: texto, files: archivos });
+        // Aviso inmediato después de compartir: WhatsApp sí manda el texto junto
+        // con las fotos, pero Messenger/inbox y otras apps a veces solo aceptan
+        // las fotos y descartan el texto (esto lo decide esa app, no nosotros).
+        // Como ya copiamos el texto al portapapeles arriba, avisamos aquí mismo
+        // para que sea imposible que se les pase pegarlo.
+        setTimeout(() => {
+          alert(
+            '✅ Fotos compartidas.\n\nSi las mandaste por WhatsApp, el texto ya llegó junto con ellas.\n\nSi las mandaste por Messenger, Instagram u otra app, esas apps a veces NO aceptan el texto junto con varias fotos — pero ya lo copiamos por ti: solo mantén presionado el cuadro de mensaje y elige "Pegar" para agregarlo.'
+          );
+        }, 400);
       } else {
         alert(
           'Este navegador no permite compartir varias fotos a la vez. Puedes compartir la foto de cada paquete por separado, con el botón "Compartir foto" de cada uno.'
@@ -160,6 +170,11 @@ export default function HistorialCliente() {
         const archivo = base64AArchivo(p.foto, 'paquete.jpg');
         if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
           await navigator.share({ text: texto, files: [archivo] });
+          setTimeout(() => {
+            alert(
+              '✅ Foto compartida.\n\nSi la mandaste por WhatsApp, el texto ya llegó junto.\n\nSi la mandaste por Messenger, Instagram u otra app y no ves el texto, ya lo copiamos por ti: mantén presionado el cuadro de mensaje y elige "Pegar".'
+            );
+          }, 400);
           return;
         }
       }
