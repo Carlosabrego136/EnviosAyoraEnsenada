@@ -44,14 +44,23 @@ CREATE TABLE IF NOT EXISTS paqueterias (
   url_rastreo_manual TEXT             -- plantilla de URL para consultar guía manualmente
 );
 
+-- IMPORTANTE sobre url_rastreo_manual: cuando la plantilla trae "{guia}" quiere
+-- decir que esa paquetería SÍ deja mandar a alguien directo al resultado de su
+-- rastreo (confirmado probando con guías reales). Las que no traen "{guia}" en
+-- la plantilla es porque se probó y su sitio NO permite precargar la guía por
+-- URL (Estafeta y Bajapack cambiaron de sitio; Volaris nunca lo permitió) — para
+-- esas, el botón de "Imprimir QR"/rastreo copia el número de guía y abre la
+-- página en blanco (ver BOTON_PAQUETERIA en pages/index.js del repo Rastreo).
 INSERT INTO paqueterias (nombre, rastreo_automatico, url_rastreo_manual) VALUES
   ('FedEx', false, 'https://www.fedex.com/fedextrack/?trknbr={guia}'),
   ('DHL', false, 'https://www.dhl.com/mx-es/home/tracking.html?tracking-id={guia}'),
-  ('Estafeta', false, 'https://www.estafeta.com/Herramientas/Rastreo?guia={guia}'),
-  ('Volaris', false, NULL),
-  ('Paquete Expres', false, NULL),
-  ('Bajapack', false, NULL)
-ON CONFLICT (nombre) DO NOTHING;
+  ('Paquete Expres', false, 'https://www.paquetexpress.com.mx/rastreo/{guia}'),
+  ('Estafeta', false, 'https://www.estafeta.com/rastrear-envio'),
+  ('Bajapack', false, 'https://bajapack.com/rastrear/'),
+  ('Volaris', false, 'https://volarisy4.smartkargo.com/FrmAWBTracking.aspx')
+ON CONFLICT (nombre) DO UPDATE SET
+  rastreo_automatico = EXCLUDED.rastreo_automatico,
+  url_rastreo_manual = EXCLUDED.url_rastreo_manual;
 
 -- Registro de cada paquete capturado (escaneo vendedor -> cliente)
 CREATE TABLE IF NOT EXISTS paquetes (
