@@ -45,11 +45,22 @@ export default function AdminPanel() {
   }, [filtroCategoria]);
 
   async function cambiarEstado(id, estado) {
-    await fetch(`/api/paquetes/${id}`, {
+    const res = await fetch(`/api/paquetes/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ estado }),
     });
+    const data = await res.json().catch(() => ({}));
+    // El WhatsApp ya se manda solo al cambiar el estado — solo avisamos aquí
+    // si ese envío automático falló, para que sepan usar "Notificar WhatsApp"
+    // como respaldo manual.
+    if (data && data.notificacion && !data.notificacion.ok) {
+      alert(
+        'El estado se guardó, pero no se pudo avisar por WhatsApp automáticamente: ' +
+          (data.notificacion.error || 'error desconocido') +
+          '. Puedes usar el botón "Notificar WhatsApp" para intentarlo de nuevo.'
+      );
+    }
     cargar();
   }
 
@@ -292,8 +303,8 @@ export default function AdminPanel() {
                         </option>
                       ))}
                     </select>{' '}
-                    <button className="btn secondary" onClick={() => notificar(p.id)}>
-                      Notificar WhatsApp
+                    <button className="btn secondary" onClick={() => notificar(p.id)} title="El WhatsApp ya se manda solo al cambiar el estado — usa esto solo si necesitas reenviarlo">
+                      Reenviar WhatsApp
                     </button>{' '}
                     <button
                       className="btn secondary"

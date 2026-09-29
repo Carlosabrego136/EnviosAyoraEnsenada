@@ -1,4 +1,5 @@
 const { query } = require('../../../lib/db');
+const { notificarCambioEstado } = require('../../../lib/notificaciones');
 
 export default async function handler(req, res) {
   const { id } = req.query;
@@ -29,12 +30,25 @@ export default async function handler(req, res) {
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Paquete no encontrado' });
 
-    // Si cambió el estado, lo agregamos al historial para la línea de tiempo pública.
+    // Si cambió el estado, lo agregamos al historial para la línea de tiempo pública
+    // y avisamos automáticamente al cliente por WhatsApp — ya no hace falta que
+    // alguien apriete el botón "Notificar WhatsApp" a mano cada vez.
+    let notificacion = null;
     if (estado) {
       await query('INSERT INTO estado_historial (paquete_id, estado) VALUES ($1, $2)', [id, estado]);
+
+      // El envío de WhatsApp nunca debe tumbar el guardado del paquete: si el
+      // cliente no tiene teléfono, o el microservicio de WhatsApp está caído,
+      // el cambio de estado igual queda guardado — solo informamos el detalle
+      // de la notificación junto con la respuesta, para que el panel lo muestre.
+      try {
+        notificacion = await notificarCambioEstado(id);
+      } catch (err) {
+        notificacion = { ok: false, error: 'No se pudo enviar el WhatsApp', detalle: String(err.message || err) };
+      }
     }
 
-    return res.status(200).json(rows[0]);
+    return res.status(200).json({ ...rows[0], notificacion });
   }
 
   res.status(405).end();
