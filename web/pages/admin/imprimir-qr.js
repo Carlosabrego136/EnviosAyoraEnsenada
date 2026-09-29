@@ -6,6 +6,13 @@ import Link from 'next/link';
 // clientes (en vez de entrar uno por uno a /qr/[tipo]/[id]). Pensada para
 // generar las tarjetas/gafetes físicos que se reparten y se escanean después
 // en /escanear.
+// Tope de tarjetas que se muestran/cargan de un jalón. Los clientes normales
+// mandan entre 2 y 20-30 paquetes, así que 30 cubre de sobra ese caso sin
+// arriesgarse a que el celular tenga que cargar cientos de QR a la vez (el
+// caso raro de más de 300, del bloque 24.5, la clienta dijo que lo puede
+// manejar aparte si hace falta).
+const LIMITE_TARJETAS = 30;
+
 export default function ImprimirQr() {
   const [vendedores, setVendedores] = useState([]);
   const [clientes, setClientes] = useState([]);
@@ -29,7 +36,7 @@ export default function ImprimirQr() {
     cargar();
   }, []);
 
-  const tarjetas = useMemo(() => {
+  const tarjetasCoincidentes = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     const deVendedores =
       mostrar === 'clientes'
@@ -45,6 +52,15 @@ export default function ImprimirQr() {
             .map((c) => ({ tipo: 'cliente', id: c.id, nombre: c.nombre, qrCodigo: c.qr_codigo }));
     return [...deVendedores, ...deClientes];
   }, [vendedores, clientes, mostrar, busqueda]);
+
+  // Recortamos a LIMITE_TARJETAS para no cargar/imprimir cientos de QR de
+  // golpe. Si hay más coincidencias de las que se muestran, se lo avisamos
+  // a quien esté usando la pantalla para que afine la búsqueda.
+  const tarjetas = useMemo(
+    () => tarjetasCoincidentes.slice(0, LIMITE_TARJETAS),
+    [tarjetasCoincidentes]
+  );
+  const hayMasDeLasMostradas = tarjetasCoincidentes.length > tarjetas.length;
 
   // Cada vez que cambia el filtro o la búsqueda, la lista de tarjetas es
   // distinta, así que reiniciamos el contador de imágenes cargadas.
@@ -126,7 +142,14 @@ export default function ImprimirQr() {
           No hay nadie que coincida con la búsqueda.
         </p>
       ) : (
-        <div className="iq-hoja">
+        <>
+          {hayMasDeLasMostradas && (
+            <p className="no-imprimir iq-aviso-limite">
+              Hay {tarjetasCoincidentes.length} coincidencias, se están mostrando las primeras{' '}
+              {LIMITE_TARJETAS}. Afina la búsqueda por nombre para ver o imprimir el resto.
+            </p>
+          )}
+          <div className="iq-hoja">
           {tarjetas.map((t) => (
             <div className="iq-tarjeta" key={`${t.tipo}-${t.id}`}>
               <img src="/logo.jpg" alt="ENVIOS AYORA" className="iq-logo" />
@@ -142,7 +165,8 @@ export default function ImprimirQr() {
               <p className="iq-codigo">{t.qrCodigo}</p>
             </div>
           ))}
-        </div>
+          </div>
+        </>
       )}
 
       <style jsx global>{`
@@ -185,6 +209,14 @@ export default function ImprimirQr() {
           background: #1f2937;
           color: #fff;
           border: 1px solid #374151;
+        }
+
+        .iq-aviso-limite {
+          margin: 0;
+          padding: 10px 20px;
+          background: #fef3c7;
+          color: #92400e;
+          font-size: 13px;
         }
 
         .iq-hoja {
