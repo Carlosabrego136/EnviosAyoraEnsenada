@@ -119,7 +119,13 @@ export default function Cotizador() {
       if (d.medidas.largo && d.medidas.ancho && d.medidas.alto) {
         texto += `Medidas: ${d.medidas.largo}x${d.medidas.ancho}x${d.medidas.alto} cm · Vol. ${d.volumetrico.toFixed(1)} kg\n`;
       }
-      texto += `Peso facturable: ${d.facturable.toFixed(1)} kg\n`;
+      // El peso facturable real (volumétrico vs. real, el que sea mayor) casi
+      // nunca cae justo en un múltiplo de 5 — pero las guías/tarifas del
+      // tabulador sí son de 5 en 5 kilos, así que lo que se le cobra al
+      // cliente es el escalón redondeado hacia arriba (d.tier.kg), no el
+      // número exacto calculado. Mostramos ese escalón para que coincida con
+      // el precio de abajo y no parezca un error de cálculo.
+      texto += `Peso facturable: ${d.tier ? d.tier.kg : d.facturable.toFixed(1)} kg\n`;
       if (!d.tier) {
         texto += `⚠️ Esta caja supera los 60 kg del tabulador, necesita cotización especial.\n`;
       } else if (multi) {
