@@ -25,6 +25,25 @@ export default function AdminPanel() {
   const [edicionGuia, setEdicionGuia] = useState({ paqueteria_id: '', numero_guia: '' });
   const [guardandoGuia, setGuardandoGuia] = useState(false);
 
+  // La clienta pidió que la columna de Paquetería/Guía no esté siempre visible
+  // en el listado general, porque la mayoría de sus paquetes los recibe de
+  // mano del vendedor y nunca les pone paquetería/guía (eso se asigna hasta
+  // que arma la caja de la semana para los clientes que sí van por
+  // paquetería externa). Por default queda oculta, con un switch para
+  // mostrarla cuando sí la necesite — su elección se recuerda en este
+  // navegador para que no tenga que activarla cada vez que entra.
+  const [mostrarPaqueteriaGuia, setMostrarPaqueteriaGuia] = useState(false);
+
+  useEffect(() => {
+    const guardado = window.localStorage.getItem('ayora-mostrar-paqueteria-guia');
+    if (guardado === '1') setMostrarPaqueteriaGuia(true);
+  }, []);
+
+  function cambiarMostrarPaqueteriaGuia(valor) {
+    setMostrarPaqueteriaGuia(valor);
+    window.localStorage.setItem('ayora-mostrar-paqueteria-guia', valor ? '1' : '0');
+  }
+
   async function cargar() {
     setCargando(true);
     const url = filtroCategoria ? `/api/paquetes?categoria=${filtroCategoria}` : '/api/paquetes';
@@ -185,6 +204,31 @@ export default function AdminPanel() {
           </div>
         </div>
 
+        <label
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            marginTop: 14,
+            fontSize: 13.5,
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={mostrarPaqueteriaGuia}
+            onChange={(e) => cambiarMostrarPaqueteriaGuia(e.target.checked)}
+            style={{ width: 'auto', margin: 0 }}
+          />
+          Mostrar columna de Paquetería / Guía
+        </label>
+        <p style={{ fontSize: 12.5, color: '#6b7280', marginTop: 4 }}>
+          Actívala cuando armes la caja de la semana y ya sepas con qué paquetería se va cada
+          cliente. El resto del tiempo la dejamos oculta para no saturar la pantalla con paquetes
+          que no van por paquetería externa.
+        </p>
+
         <button
           className="btn secondary"
           style={{ marginTop: 14, background: '#fee2e2', color: '#991b1b' }}
@@ -211,7 +255,7 @@ export default function AdminPanel() {
                 <th>Cliente</th>
                 <th>Vendedor</th>
                 <th>Categoría</th>
-                <th>Paquetería / Guía</th>
+                {mostrarPaqueteriaGuia && <th>Paquetería / Guía</th>}
                 <th>Foto</th>
                 <th>Estado</th>
                 <th>Acciones</th>
@@ -223,6 +267,7 @@ export default function AdminPanel() {
                   <td data-label="Cliente">{p.cliente_nombre}</td>
                   <td data-label="Vendedor">{p.vendedor_nombre}</td>
                   <td data-label="Categoría">{p.categoria_nombre || '—'}</td>
+                  {mostrarPaqueteriaGuia && (
                   <td data-label="Paquetería / Guía">
                     {editandoGuiaId === p.id ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 180 }}>
@@ -275,6 +320,7 @@ export default function AdminPanel() {
                       </>
                     )}
                   </td>
+                  )}
                   <td data-label="Foto">
                     {p.foto ? (
                       <a href={p.foto} target="_blank" rel="noreferrer">
@@ -318,7 +364,7 @@ export default function AdminPanel() {
               ))}
               {filtrados.length === 0 && (
                 <tr>
-                  <td colSpan={7}>No hay paquetes que coincidan.</td>
+                  <td colSpan={mostrarPaqueteriaGuia ? 7 : 6}>No hay paquetes que coincidan.</td>
                 </tr>
               )}
             </tbody>
