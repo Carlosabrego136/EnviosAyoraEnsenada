@@ -12,6 +12,11 @@ export default function ImprimirQr() {
   const [cargando, setCargando] = useState(true);
   const [mostrar, setMostrar] = useState('ambos'); // 'ambos' | 'vendedores' | 'clientes'
   const [busqueda, setBusqueda] = useState('');
+  // Cuántas imágenes de QR ya terminaron de cargar (o fallaron) de las que se
+  // están mostrando ahorita. Mientras no coincida con el total, no dejamos
+  // imprimir — así nunca vuelve a pasar que se manden a imprimir QR en blanco
+  // porque la imagen no alcanzó a cargar a tiempo.
+  const [cargadas, setCargadas] = useState(0);
 
   useEffect(() => {
     async function cargar() {
@@ -40,6 +45,22 @@ export default function ImprimirQr() {
             .map((c) => ({ tipo: 'cliente', id: c.id, nombre: c.nombre, qrCodigo: c.qr_codigo }));
     return [...deVendedores, ...deClientes];
   }, [vendedores, clientes, mostrar, busqueda]);
+
+  // Cada vez que cambia el filtro o la búsqueda, la lista de tarjetas es
+  // distinta, así que reiniciamos el contador de imágenes cargadas.
+  useEffect(() => {
+    setCargadas(0);
+  }, [tarjetas]);
+
+  const todasCargadas = tarjetas.length > 0 && cargadas >= tarjetas.length;
+
+  function imprimir() {
+    if (!todasCargadas) {
+      alert('Espera un momento a que terminen de cargar todos los códigos QR antes de imprimir.');
+      return;
+    }
+    window.print();
+  }
 
   return (
     <div className="imprimir-qr-pagina">
@@ -89,8 +110,10 @@ export default function ImprimirQr() {
           placeholder="Buscar por nombre..."
         />
 
-        <button className="btn" onClick={() => window.print()}>
-          Imprimir ({tarjetas.length})
+        <button className="btn" onClick={imprimir} disabled={!todasCargadas}>
+          {todasCargadas
+            ? `Imprimir (${tarjetas.length})`
+            : `Cargando QR... (${cargadas}/${tarjetas.length})`}
         </button>
       </div>
 
@@ -113,7 +136,8 @@ export default function ImprimirQr() {
                 src={`/api/qr-imagen?valor=${encodeURIComponent(t.qrCodigo)}`}
                 alt={`Código QR de ${t.nombre}`}
                 className="iq-imagen"
-                loading="lazy"
+                onLoad={() => setCargadas((n) => n + 1)}
+                onError={() => setCargadas((n) => n + 1)}
               />
               <p className="iq-codigo">{t.qrCodigo}</p>
             </div>
@@ -212,6 +236,11 @@ export default function ImprimirQr() {
           word-break: break-all;
         }
 
+        .iq-barra .btn:disabled {
+          opacity: 0.6;
+          cursor: default;
+        }
+
         @media print {
           .no-imprimir {
             display: none !important;
@@ -219,9 +248,13 @@ export default function ImprimirQr() {
           .imprimir-qr-pagina {
             background: #fff;
           }
+          /* IMPORTANTE: "display: grid" no reparte bien el contenido en varias
+             hojas al imprimir en Chrome — corta todo después de la primera
+             página. Con flexbox + wrap sí se reparte correctamente en tantas
+             hojas como haga falta. */
           .iq-hoja {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            display: flex;
+            flex-wrap: wrap;
             gap: 10px;
             padding: 0;
           }
@@ -229,6 +262,8 @@ export default function ImprimirQr() {
             box-shadow: none;
             border: 1px solid #d1d5db;
             page-break-inside: avoid;
+            break-inside: avoid;
+            width: 31.5%;
           }
         }
       `}</style>
