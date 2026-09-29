@@ -14,9 +14,6 @@ export default function Escanear() {
   const [vendedorNombre, setVendedorNombre] = useState('');
   const [clienteQr, setClienteQr] = useState('');
   const [paquetesGuardados, setPaquetesGuardados] = useState(0); // contador de la ráfaga actual
-  const [paqueterias, setPaqueterias] = useState([]);
-  const [paqueteriaId, setPaqueteriaId] = useState('');
-  const [numeroGuia, setNumeroGuia] = useState('');
   const [fotoBase64, setFotoBase64] = useState(null);
   const [fotoCargando, setFotoCargando] = useState(false);
   const [mensaje, setMensaje] = useState(null);
@@ -29,13 +26,6 @@ export default function Escanear() {
   useEffect(() => {
     pasoRef.current = paso;
   }, [paso]);
-
-  useEffect(() => {
-    fetch('/api/paqueterias')
-      .then((r) => r.json())
-      .then(setPaqueterias)
-      .catch(() => {});
-  }, []);
 
   // Detiene y limpia por completo la cámara antes de volver a usarla.
   // Esto es lo que evita que el siguiente escaneo "arrastre" el código anterior.
@@ -150,8 +140,6 @@ export default function Escanear() {
         body: JSON.stringify({
           vendedor_qr: vendedorQr,
           cliente_qr: clienteQr,
-          paqueteria_id: paqueteriaId || null,
-          numero_guia: numeroGuia || null,
           foto: fotoBase64 || null,
         }),
       });
@@ -164,8 +152,6 @@ export default function Escanear() {
       // Seguimos con el MISMO vendedor: regresamos directo al paso 2 para
       // escanear al siguiente cliente, sin volver a pedir el QR del vendedor.
       setClienteQr('');
-      setPaqueteriaId('');
-      setNumeroGuia('');
       setFotoBase64(null);
       setPaso(2);
     } catch (err) {
@@ -259,9 +245,10 @@ export default function Escanear() {
         )}
         {paso === 3 && (
           <p style={{ fontSize: 13, color: '#4b5563', marginTop: -6 }}>
-            Revisa que el cliente sea el correcto, agrega la paquetería/guía si la tienes, y
-            guarda. Al guardar, regresas directo a escanear el siguiente cliente de este mismo
-            vendedor.
+            Revisa que el cliente sea el correcto, toma o adjunta la foto del paquete, y guarda.
+            La paquetería y el número de guía se agregan después, cuando se arme la caja de la
+            semana (desde el panel, con el botón "Agregar guía"). Al guardar, regresas directo a
+            escanear el siguiente cliente de este mismo vendedor.
           </p>
         )}
 
@@ -282,23 +269,6 @@ export default function Escanear() {
             <p>
               Cliente QR: <b>{clienteQr}</b>
             </p>
-
-            <label>Paquetería (opcional)</label>
-            <select value={paqueteriaId} onChange={(e) => setPaqueteriaId(e.target.value)}>
-              <option value="">-- Selecciona --</option>
-              {paqueterias.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre}
-                </option>
-              ))}
-            </select>
-
-            <label>Número de guía (opcional)</label>
-            <input
-              value={numeroGuia}
-              onChange={(e) => setNumeroGuia(e.target.value)}
-              placeholder="Ej. 313103"
-            />
 
             <label>Foto del paquete (opcional)</label>
             {!fotoBase64 && (
