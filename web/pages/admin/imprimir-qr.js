@@ -13,6 +13,17 @@ import Link from 'next/link';
 // manejar aparte si hace falta).
 const LIMITE_TARJETAS = 30;
 
+// Cuántas tarjetas caben en una hoja carta con el tamaño actual del QR (3
+// columnas x 3 filas). Antes dejábamos que el navegador repartiera todo el
+// listado en las hojas que hicieran falta solo con flexbox + wrap, y en
+// computadora funcionaba, pero en el celular de la clienta (Chrome Android)
+// el motor de impresión NO reparte el contenido en varias hojas — corta todo
+// después de la primera y ni siquiera ofrece más páginas en el diálogo de
+// imprimir. Por eso ahora partimos la lista en grupos de este tamaño
+// nosotros mismos y forzamos un salto de página entre cada grupo, para que
+// no dependa de que el navegador lo calcule bien.
+const TARJETAS_POR_HOJA = 9;
+
 export default function ImprimirQr() {
   const [vendedores, setVendedores] = useState([]);
   const [clientes, setClientes] = useState([]);
@@ -61,6 +72,16 @@ export default function ImprimirQr() {
     [tarjetasCoincidentes]
   );
   const hayMasDeLasMostradas = tarjetasCoincidentes.length > tarjetas.length;
+
+  // Partimos las tarjetas a imprimir en grupos del tamaño de una hoja, para
+  // forzar el salto de página nosotros mismos (ver nota de TARJETAS_POR_HOJA).
+  const hojas = useMemo(() => {
+    const grupos = [];
+    for (let i = 0; i < tarjetas.length; i += TARJETAS_POR_HOJA) {
+      grupos.push(tarjetas.slice(i, i + TARJETAS_POR_HOJA));
+    }
+    return grupos;
+  }, [tarjetas]);
 
   // Cada vez que cambia el filtro o la búsqueda, la lista de tarjetas es
   // distinta, así que reiniciamos el contador de imágenes cargadas.
@@ -149,22 +170,26 @@ export default function ImprimirQr() {
               {LIMITE_TARJETAS}. Afina la búsqueda por nombre para ver o imprimir el resto.
             </p>
           )}
-          <div className="iq-hoja">
-          {tarjetas.map((t) => (
-            <div className="iq-tarjeta" key={`${t.tipo}-${t.id}`}>
-              <img src="/logo.jpg" alt="ENVIOS AYORA" className="iq-logo" />
-              <p className="iq-etiqueta">{t.tipo === 'vendedor' ? 'Vendedor' : 'Cliente'}</p>
-              <p className="iq-nombre">{t.nombre}</p>
-              <img
-                src={`/api/qr-imagen?valor=${encodeURIComponent(t.qrCodigo)}`}
-                alt={`Código QR de ${t.nombre}`}
-                className="iq-imagen"
-                onLoad={() => setCargadas((n) => n + 1)}
-                onError={() => setCargadas((n) => n + 1)}
-              />
-              <p className="iq-codigo">{t.qrCodigo}</p>
-            </div>
-          ))}
+          <div className="iq-hojas">
+            {hojas.map((grupo, indiceHoja) => (
+              <div className="iq-hoja" key={indiceHoja}>
+                {grupo.map((t) => (
+                  <div className="iq-tarjeta" key={`${t.tipo}-${t.id}`}>
+                    <img src="/logo.jpg" alt="ENVIOS AYORA" className="iq-logo" />
+                    <p className="iq-etiqueta">{t.tipo === 'vendedor' ? 'Vendedor' : 'Cliente'}</p>
+                    <p className="iq-nombre">{t.nombre}</p>
+                    <img
+                      src={`/api/qr-imagen?valor=${encodeURIComponent(t.qrCodigo)}`}
+                      alt={`Código QR de ${t.nombre}`}
+                      className="iq-imagen"
+                      onLoad={() => setCargadas((n) => n + 1)}
+                      onError={() => setCargadas((n) => n + 1)}
+                    />
+                    <p className="iq-codigo">{t.qrCodigo}</p>
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
         </>
       )}
@@ -219,11 +244,18 @@ export default function ImprimirQr() {
           font-size: 13px;
         }
 
+        .iq-hojas {
+          padding: 20px;
+        }
         .iq-hoja {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
           gap: 16px;
-          padding: 20px;
+        }
+        .iq-hoja + .iq-hoja {
+          margin-top: 24px;
+          padding-top: 24px;
+          border-top: 2px dashed #d1d5db;
         }
 
         .iq-tarjeta {
@@ -280,15 +312,32 @@ export default function ImprimirQr() {
           .imprimir-qr-pagina {
             background: #fff;
           }
-          /* IMPORTANTE: "display: grid" no reparte bien el contenido en varias
-             hojas al imprimir en Chrome — corta todo después de la primera
-             página. Con flexbox + wrap sí se reparte correctamente en tantas
-             hojas como haga falta. */
+          .iq-hojas {
+            padding: 0;
+          }
+          /* IMPORTANTE: NO dejamos que el navegador reparta las tarjetas en
+             hojas por su cuenta (ni con grid ni con flex se puede confiar en
+             eso en todos los celulares/navegadores — a la clienta, en Chrome
+             Android, se le cortaba todo después de la primera hoja de 9 y ni
+             siquiera ofrecía más páginas). En vez de eso, cada ".iq-hoja" ya
+             viene armado desde React con como máximo TARJETAS_POR_HOJA
+             tarjetas, y aquí forzamos que cada una sea su propia hoja física
+             con un salto de página explícito. */
           .iq-hoja {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
-            padding: 0;
+            page-break-after: always;
+            break-after: page;
+          }
+          .iq-hoja:last-child {
+            page-break-after: auto;
+            break-after: auto;
+          }
+          .iq-hoja + .iq-hoja {
+            margin-top: 0;
+            padding-top: 0;
+            border-top: none;
           }
           .iq-tarjeta {
             box-shadow: none;
