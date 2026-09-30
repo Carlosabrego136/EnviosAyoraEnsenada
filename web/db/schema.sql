@@ -118,3 +118,48 @@ DROP TRIGGER IF EXISTS trg_paquetes_actualizado ON paquetes;
 CREATE TRIGGER trg_paquetes_actualizado
 BEFORE UPDATE ON paquetes
 FOR EACH ROW EXECUTE FUNCTION set_actualizado_en();
+
+-- ============================================================
+-- Ficha extendida de vendedores (pedida por la clienta para el
+-- proyecto separado "Vendedores"). Se agrega con ALTER porque la
+-- tabla vendedores ya existe desde antes. Estos campos NO se
+-- muestran en el panel administrativo general (pages/admin/vendedores.js
+-- del proyecto principal no los toca ni los lee) — solo los usa el
+-- proyecto separado envios-ayora-vendedores.
+-- ============================================================
+ALTER TABLE vendedores ADD COLUMN IF NOT EXISTS telefono TEXT;
+ALTER TABLE vendedores ADD COLUMN IF NOT EXISTS fecha_nacimiento DATE;
+ALTER TABLE vendedores ADD COLUMN IF NOT EXISTS fecha_ingreso DATE NOT NULL DEFAULT CURRENT_DATE;
+ALTER TABLE vendedores ADD COLUMN IF NOT EXISTS fecha_vencimiento DATE;
+ALTER TABLE vendedores ADD COLUMN IF NOT EXISTS facebook TEXT;
+ALTER TABLE vendedores ADD COLUMN IF NOT EXISTS referencia1_nombre TEXT;
+ALTER TABLE vendedores ADD COLUMN IF NOT EXISTS referencia1_telefono TEXT;
+ALTER TABLE vendedores ADD COLUMN IF NOT EXISTS referencia2_nombre TEXT;
+ALTER TABLE vendedores ADD COLUMN IF NOT EXISTS referencia2_telefono TEXT;
+-- Foto de la INE guardada como imagen en base64 (comprimida del lado del
+-- navegador antes de subirla), igual que ya se hace con la foto de los
+-- paquetes — sin necesidad de contratar ni mantener otro servicio aparte.
+ALTER TABLE vendedores ADD COLUMN IF NOT EXISTS ine_foto TEXT;
+-- Estatus ampliado del vendedor (independiente del booleano "activo" que ya
+-- usa el panel general — ese sigue funcionando igual, sin tocarse).
+ALTER TABLE vendedores ADD COLUMN IF NOT EXISTS estatus TEXT NOT NULL DEFAULT 'activo';
+ALTER TABLE vendedores DROP CONSTRAINT IF EXISTS vendedores_estatus_check;
+ALTER TABLE vendedores ADD CONSTRAINT vendedores_estatus_check
+  CHECK (estatus IN ('activo', 'inactivo', 'alerta_riesgo', 'vetado'));
+
+-- Si ya existían vendedores antes de este cambio, les damos una fecha de
+-- ingreso/vencimiento razonable en vez de dejarlos en blanco.
+UPDATE vendedores SET fecha_vencimiento = (fecha_ingreso + INTERVAL '1 year')::date
+WHERE fecha_vencimiento IS NULL;
+
+-- Asistencia del vendedor al "pase de lista" de los viernes (día en que se
+-- reciben los paquetes). Un renglón por vendedor por fecha escaneada.
+CREATE TABLE IF NOT EXISTS asistencias_vendedores (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  vendedor_id UUID NOT NULL REFERENCES vendedores(id) ON DELETE CASCADE,
+  fecha DATE NOT NULL,
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (vendedor_id, fecha)
+);
+CREATE INDEX IF NOT EXISTS idx_asistencias_vendedor ON asistencias_vendedores (vendedor_id);
+CREATE INDEX IF NOT EXISTS idx_asistencias_fecha ON asistencias_vendedores (fecha);
