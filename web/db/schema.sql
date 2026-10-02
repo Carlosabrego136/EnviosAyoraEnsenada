@@ -163,3 +163,25 @@ CREATE TABLE IF NOT EXISTS asistencias_vendedores (
 );
 CREATE INDEX IF NOT EXISTS idx_asistencias_vendedor ON asistencias_vendedores (vendedor_id);
 CREATE INDEX IF NOT EXISTS idx_asistencias_fecha ON asistencias_vendedores (fecha);
+
+-- ============================================================
+-- Registro de clientes (sección nueva del panel administrativo para
+-- capturar los datos de un envío/cliente y poder mandarlos por WhatsApp
+-- con un mensaje ya formateado). Es independiente de la tabla "clientes"
+-- (esa sigue usándose para el QR y el rastreo de paquetes) — esta es solo
+-- para guardar estos datos puntuales que pidió la clienta.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS registros_clientes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre TEXT NOT NULL,
+  telefono TEXT,
+  domicilio TEXT,
+  facebook TEXT,
+  referencia TEXT,
+  paqueteria TEXT,
+  numero_cajas INTEGER,
+  kilos NUMERIC(10,2),
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_registros_clientes_nombre ON registros_clientes (lower(nombre));
+CREATE INDEX IF NOT EXISTS idx_registros_clientes_creado ON registros_clientes (creado_en);
