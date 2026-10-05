@@ -164,6 +164,25 @@ CREATE TABLE IF NOT EXISTS asistencias_vendedores (
 CREATE INDEX IF NOT EXISTS idx_asistencias_vendedor ON asistencias_vendedores (vendedor_id);
 CREATE INDEX IF NOT EXISTS idx_asistencias_fecha ON asistencias_vendedores (fecha);
 
+-- Número de registro consecutivo del vendedor (para su tarjeta de
+-- identificación). Empieza en 1 y se muestra con 4 dígitos (0001, 0002...).
+-- Se asigna solo, automáticamente, al dar de alta a cada vendedor nuevo.
+ALTER TABLE vendedores ADD COLUMN IF NOT EXISTS numero_registro INTEGER;
+-- Si ya había vendedores antes de este cambio, se les asigna un número
+-- consecutivo según el orden en que se dieron de alta, para no dejarlos sin
+-- número.
+WITH numerados AS (
+  SELECT id, ROW_NUMBER() OVER (ORDER BY creado_en ASC) AS n
+  FROM vendedores
+  WHERE numero_registro IS NULL
+)
+UPDATE vendedores v
+SET numero_registro = numerados.n
+FROM numerados
+WHERE v.id = numerados.id;
+ALTER TABLE vendedores DROP CONSTRAINT IF EXISTS vendedores_numero_registro_unico;
+ALTER TABLE vendedores ADD CONSTRAINT vendedores_numero_registro_unico UNIQUE (numero_registro);
+
 -- ============================================================
 -- Registro de clientes (sección nueva del panel administrativo para
 -- capturar los datos de un envío/cliente y poder mandarlos por WhatsApp
