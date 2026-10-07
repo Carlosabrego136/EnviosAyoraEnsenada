@@ -5,6 +5,9 @@ export default async function handler(req, res) {
 
   if (req.method === 'PATCH') {
     const { nombre, categoria_id, activo } = req.body;
+    // "" se trata igual que null (el formulario manda cadena vacía cuando
+    // elige "Sin categoría"), si no Postgres truena al convertir "" a uuid.
+    const categoriaIdParam = categoria_id === null || categoria_id === '' ? '__null__' : categoria_id;
     const { rows } = await query(
       `UPDATE vendedores
        SET nombre = COALESCE($1, nombre),
@@ -12,7 +15,7 @@ export default async function handler(req, res) {
            activo = COALESCE($3, activo)
        WHERE id = $4
        RETURNING *`,
-      [nombre, categoria_id === null ? '__null__' : categoria_id, activo, id]
+      [nombre, categoriaIdParam, activo, id]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Vendedor no encontrado' });
     return res.status(200).json(rows[0]);

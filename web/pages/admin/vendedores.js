@@ -4,10 +4,13 @@ import Layout from '../../components/Layout';
 
 export default function Vendedores() {
   const [vendedores, setVendedores] = useState([]);
+  const [categorias, setCategorias] = useState([]);
   const [nombre, setNombre] = useState('');
+  const [categoriaId, setCategoriaId] = useState('');
   const [mostrarInactivos, setMostrarInactivos] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
   const [nombreEdicion, setNombreEdicion] = useState('');
+  const [categoriaEdicion, setCategoriaEdicion] = useState('');
   const [busqueda, setBusqueda] = useState('');
 
   async function cargar() {
@@ -16,10 +19,19 @@ export default function Vendedores() {
     setVendedores(await res.json());
   }
 
+  async function cargarCategorias() {
+    const res = await fetch('/api/categorias');
+    setCategorias(await res.json());
+  }
+
   useEffect(() => {
     cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mostrarInactivos]);
+
+  useEffect(() => {
+    cargarCategorias();
+  }, []);
 
   async function crear(e) {
     e.preventDefault();
@@ -27,15 +39,17 @@ export default function Vendedores() {
     await fetch('/api/vendedores', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre }),
+      body: JSON.stringify({ nombre, categoria_id: categoriaId || null }),
     });
     setNombre('');
+    setCategoriaId('');
     cargar();
   }
 
   function iniciarEdicion(v) {
     setEditandoId(v.id);
     setNombreEdicion(v.nombre);
+    setCategoriaEdicion(v.categoria_id || '');
   }
 
   async function guardarEdicion(id) {
@@ -43,7 +57,7 @@ export default function Vendedores() {
     await fetch(`/api/vendedores/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre: nombreEdicion }),
+      body: JSON.stringify({ nombre: nombreEdicion, categoria_id: categoriaEdicion || null }),
     });
     setEditandoId(null);
     cargar();
@@ -87,6 +101,17 @@ export default function Vendedores() {
             <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Magalli Renata" />
           </div>
           <div>
+            <label>Categoría</label>
+            <select value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)}>
+              <option value="">Sin categoría</option>
+              {categorias.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
             <button className="btn" type="submit">Agregar vendedor</button>
           </div>
         </form>
@@ -115,6 +140,7 @@ export default function Vendedores() {
           <thead>
             <tr>
               <th>Nombre</th>
+              <th>Categoría</th>
               <th>Estado</th>
               <th>QR</th>
               <th>Acciones</th>
@@ -132,6 +158,24 @@ export default function Vendedores() {
                     />
                   ) : (
                     v.nombre
+                  )}
+                </td>
+                <td data-label="Categoría">
+                  {editandoId === v.id ? (
+                    <select
+                      value={categoriaEdicion}
+                      onChange={(e) => setCategoriaEdicion(e.target.value)}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <option value="">Sin categoría</option>
+                      {categorias.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    v.categoria_nombre || '—'
                   )}
                 </td>
                 <td data-label="Estado">
@@ -170,7 +214,7 @@ export default function Vendedores() {
             ))}
             {vendedoresFiltrados.length === 0 && (
               <tr>
-                <td colSpan={4}>No hay vendedores para mostrar.</td>
+                <td colSpan={5}>No hay vendedores para mostrar.</td>
               </tr>
             )}
           </tbody>
