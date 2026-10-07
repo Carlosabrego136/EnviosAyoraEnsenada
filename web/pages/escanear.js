@@ -272,7 +272,10 @@ export default function Escanear() {
 
             <label>Foto del paquete (opcional)</label>
             {!fotoBase64 && (
-              <input type="file" accept="image/*" capture="environment" onChange={manejarFoto} />
+              /* Sin el atributo "capture": así se muestran las dos opciones
+                 (tomar foto o elegir de archivos/galería) en vez de forzar
+                 que se abra directo la cámara. */
+              <input type="file" accept="image/*" onChange={manejarFoto} />
             )}
             {fotoCargando && <p style={{ fontSize: 13, color: '#6b7280' }}>Procesando foto...</p>}
             {fotoBase64 && (
