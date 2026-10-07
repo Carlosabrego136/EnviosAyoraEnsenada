@@ -183,6 +183,12 @@ WHERE v.id = numerados.id;
 ALTER TABLE vendedores DROP CONSTRAINT IF EXISTS vendedores_numero_registro_unico;
 ALTER TABLE vendedores ADD CONSTRAINT vendedores_numero_registro_unico UNIQUE (numero_registro);
 
+-- Foto para la credencial imprimible (distinta de la foto de la INE): es la
+-- foto de perfil/retrato del vendedor que se muestra en el diseño de la
+-- credencial FÉNIX. Se guarda igual que la INE, como imagen en base64
+-- comprimida del lado del navegador antes de subirla.
+ALTER TABLE vendedores ADD COLUMN IF NOT EXISTS foto_credencial TEXT;
+
 -- ============================================================
 -- Registro de clientes (sección nueva del panel administrativo para
 -- capturar los datos de un envío/cliente y poder mandarlos por WhatsApp
