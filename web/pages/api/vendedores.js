@@ -15,12 +15,12 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    const { nombre, categoria_id } = req.body;
+    const { nombre, alias, categoria_id } = req.body;
     if (!nombre) return res.status(400).json({ error: 'nombre es requerido' });
     const qr_codigo = `VEND-${nanoid(10)}`;
     const { rows } = await query(
-      'INSERT INTO vendedores (nombre, categoria_id, qr_codigo) VALUES ($1, $2, $3) RETURNING *',
-      [nombre, categoria_id || null, qr_codigo]
+      'INSERT INTO vendedores (nombre, alias, categoria_id, qr_codigo) VALUES ($1, $2, $3, $4) RETURNING *',
+      [nombre, alias || null, categoria_id || null, qr_codigo]
     );
     return res.status(201).json(rows[0]);
   }

@@ -17,6 +17,7 @@ export default function Escanear() {
   const [paso, setPaso] = useState(1);
   const [vendedorQr, setVendedorQr] = useState('');
   const [vendedorNombre, setVendedorNombre] = useState('');
+  const [vendedorAlias, setVendedorAlias] = useState('');
   const [clienteQr, setClienteQr] = useState('');
   const [paquetesGuardados, setPaquetesGuardados] = useState(0); // contador de la ráfaga actual
   const [fotoBase64, setFotoBase64] = useState(null);
@@ -51,6 +52,7 @@ export default function Escanear() {
         if (datos && datos.qr) {
           setVendedorQr(datos.qr);
           setVendedorNombre(datos.nombre || '');
+          setVendedorAlias(datos.alias || '');
           setPaso(2);
         }
       }
@@ -67,10 +69,10 @@ export default function Escanear() {
     try {
       window.localStorage.setItem(
         CLAVE_VENDEDOR_RECORDADO,
-        JSON.stringify({ qr: vendedorQr, nombre: vendedorNombre || '' })
+        JSON.stringify({ qr: vendedorQr, nombre: vendedorNombre || '', alias: vendedorAlias || '' })
       );
     } catch (err) {}
-  }, [vendedorQr, vendedorNombre]);
+  }, [vendedorQr, vendedorNombre, vendedorAlias]);
 
   // Selecciona un vendedor (desde la búsqueda) y avanza al paso 2, igual que
   // si se hubiera escaneado su QR.
@@ -79,6 +81,7 @@ export default function Escanear() {
     setError(null);
     setVendedorQr(v.qr_codigo);
     setVendedorNombre(v.nombre);
+    setVendedorAlias(v.alias || '');
     setPaquetesGuardados(0);
     setPaso(2);
   }
@@ -120,7 +123,13 @@ export default function Escanear() {
   const listaFiltrada = (paso === 1 ? vendedoresLista : clientesLista).filter((item) => {
     const q = busquedaLista.trim().toLowerCase();
     if (!q) return true;
-    return item.nombre.toLowerCase().includes(q);
+    // Para vendedores, también se busca por su alias / nombre de bazar
+    // (ej. "El Bazar de Lupita"), porque así es como la clienta los
+    // identifica la mayoría de las veces, no por su nombre real.
+    return (
+      item.nombre.toLowerCase().includes(q) ||
+      (item.alias && item.alias.toLowerCase().includes(q))
+    );
   });
 
   // Detiene y limpia por completo la cámara antes de volver a usarla.
@@ -165,6 +174,7 @@ export default function Escanear() {
             setError(null);
             setVendedorQr(decodedText);
             setVendedorNombre('');
+            setVendedorAlias('');
             setPaquetesGuardados(0);
             setPaso(2);
           } else if (pasoActual === 2) {
@@ -259,6 +269,7 @@ export default function Escanear() {
   function cambiarVendedor() {
     setVendedorQr('');
     setVendedorNombre('');
+    setVendedorAlias('');
     setClienteQr('');
     setPaquetesGuardados(0);
     setFotoBase64(null);
@@ -306,6 +317,7 @@ export default function Escanear() {
             }}
           >
             Vendedor actual: <b>{vendedorNombre || vendedorQr}</b>
+            {vendedorAlias && <span> ({vendedorAlias})</span>}
             {paquetesGuardados > 0 && (
               <span style={{ color: '#4338ca' }}> — {paquetesGuardados} paquete(s) capturado(s) en esta ráfaga</span>
             )}
@@ -430,6 +442,9 @@ export default function Escanear() {
                     }}
                   >
                     {item.nombre}
+                    {paso === 1 && item.alias && (
+                      <span style={{ color: '#6b7280', fontSize: 12.5 }}> — {item.alias}</span>
+                    )}
                     {paso === 2 && item.categoria_nombre && (
                       <span style={{ color: '#6b7280', fontSize: 12.5 }}> — {item.categoria_nombre}</span>
                     )}

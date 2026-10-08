@@ -10,6 +10,7 @@ export default function Clientes() {
   const [categoriaId, setCategoriaId] = useState('');
   const [mostrarInactivos, setMostrarInactivos] = useState(false);
   const [busqueda, setBusqueda] = useState('');
+  const [avisoCopiado, setAvisoCopiado] = useState('');
 
   const [editandoId, setEditandoId] = useState(null);
   const [edicion, setEdicion] = useState({ nombre: '', telefono: '', categoria_id: '' });
@@ -88,6 +89,55 @@ export default function Clientes() {
     return clientes.filter((c) => c.nombre.toLowerCase().includes(q));
   }, [clientes, busqueda]);
 
+  // Copia la lista de clientes que se está viendo en este momento (ya
+  // filtrada por el buscador) como texto separado por tabulaciones, para
+  // que al pegarlo en Excel cada dato caiga en su propia columna — mismo
+  // botón que ya existe en Vendedores, pedido aquí para la lista de clientes.
+  async function copiarParaExcel() {
+    const encabezados = ['Nombre', 'Teléfono', 'Categoría', 'Estado'];
+
+    const filas = clientesFiltrados.map((c) => [
+      c.nombre || '',
+      c.telefono || '',
+      c.categoria_nombre || 'General',
+      c.activo ? 'Activo' : 'Desactivado',
+    ]);
+
+    const texto = [encabezados, ...filas].map((fila) => fila.join('\t')).join('\n');
+
+    let copiado = false;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(texto);
+        copiado = true;
+      }
+    } catch (err) {
+      copiado = false;
+    }
+    if (!copiado) {
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = texto;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        copiado = true;
+      } catch (err) {
+        copiado = false;
+      }
+    }
+
+    setAvisoCopiado(
+      copiado
+        ? `Se copiaron ${filas.length} cliente${filas.length === 1 ? '' : 's'}. Ya puedes pegarlo en Excel (Ctrl/Cmd + V).`
+        : 'No se pudo copiar automáticamente. Intenta de nuevo.'
+    );
+    setTimeout(() => setAvisoCopiado(''), 6000);
+  }
+
   return (
     <Layout>
       <div className="card">
@@ -117,7 +167,23 @@ export default function Clientes() {
       </div>
 
       <div className="card">
-        <label>Buscar cliente</label>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 10,
+            flexWrap: 'wrap',
+          }}
+        >
+          <label style={{ marginBottom: 0 }}>Buscar cliente</label>
+          <button className="btn secondary" style={{ fontSize: 12.5, padding: '6px 10px' }} onClick={copiarParaExcel}>
+            📋 Copiar para Excel
+          </button>
+        </div>
+        {avisoCopiado && (
+          <p style={{ fontSize: 12.5, color: '#065f46', fontWeight: 600, marginTop: 4 }}>{avisoCopiado}</p>
+        )}
         <input
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}

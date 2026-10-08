@@ -60,10 +60,12 @@ export default function Vendedores() {
   const [vendedores, setVendedores] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [nombre, setNombre] = useState('');
+  const [alias, setAlias] = useState('');
   const [categoriaTexto, setCategoriaTexto] = useState('');
   const [mostrarInactivos, setMostrarInactivos] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
   const [nombreEdicion, setNombreEdicion] = useState('');
+  const [aliasEdicion, setAliasEdicion] = useState('');
   const [categoriaEdicionTexto, setCategoriaEdicionTexto] = useState('');
   const [busqueda, setBusqueda] = useState('');
 
@@ -98,9 +100,10 @@ export default function Vendedores() {
     await fetch('/api/vendedores', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre, categoria_id }),
+      body: JSON.stringify({ nombre, alias: alias.trim() || null, categoria_id }),
     });
     setNombre('');
+    setAlias('');
     setCategoriaTexto('');
     cargar();
   }
@@ -108,6 +111,7 @@ export default function Vendedores() {
   function iniciarEdicion(v) {
     setEditandoId(v.id);
     setNombreEdicion(v.nombre);
+    setAliasEdicion(v.alias || '');
     setCategoriaEdicionTexto(v.categoria_nombre || '');
   }
 
@@ -117,7 +121,7 @@ export default function Vendedores() {
     await fetch(`/api/vendedores/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre: nombreEdicion, categoria_id }),
+      body: JSON.stringify({ nombre: nombreEdicion, alias: aliasEdicion.trim() || null, categoria_id }),
     });
     setEditandoId(null);
     cargar();
@@ -148,7 +152,14 @@ export default function Vendedores() {
   const vendedoresFiltrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     if (!q) return vendedores;
-    return vendedores.filter((v) => v.nombre.toLowerCase().includes(q));
+    // También se busca por alias (nombre de bazar/negocio), porque así es
+    // como la clienta identifica a la mayoría de sus vendedores, no
+    // necesariamente por su nombre real.
+    return vendedores.filter(
+      (v) =>
+        v.nombre.toLowerCase().includes(q) ||
+        (v.alias && v.alias.toLowerCase().includes(q))
+    );
   }, [vendedores, busqueda]);
 
   return (
@@ -167,6 +178,14 @@ export default function Vendedores() {
             <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Magalli Renata" />
           </div>
           <div>
+            <label>Alias / nombre del bazar (opcional)</label>
+            <input
+              value={alias}
+              onChange={(e) => setAlias(e.target.value)}
+              placeholder="Ej. El Bazar de Lupita"
+            />
+          </div>
+          <div>
             <label>Categoría</label>
             <input
               list="categorias-lista"
@@ -182,11 +201,11 @@ export default function Vendedores() {
       </div>
 
       <div className="card">
-        <label>Buscar vendedor</label>
+        <label>Buscar vendedor (por nombre o alias/bazar)</label>
         <input
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
-          placeholder="Escribe un nombre para filtrar..."
+          placeholder="Ej. Lupita o El Bazar de Lupita..."
         />
 
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -215,13 +234,27 @@ export default function Vendedores() {
               <tr key={v.id} style={{ opacity: v.activo ? 1 : 0.55 }}>
                 <td data-label="Nombre">
                   {editandoId === v.id ? (
-                    <input
-                      value={nombreEdicion}
-                      onChange={(e) => setNombreEdicion(e.target.value)}
-                      style={{ marginBottom: 0 }}
-                    />
+                    <>
+                      <input
+                        value={nombreEdicion}
+                        onChange={(e) => setNombreEdicion(e.target.value)}
+                        style={{ marginBottom: 6 }}
+                        placeholder="Nombre real"
+                      />
+                      <input
+                        value={aliasEdicion}
+                        onChange={(e) => setAliasEdicion(e.target.value)}
+                        style={{ marginBottom: 0 }}
+                        placeholder="Alias / nombre del bazar"
+                      />
+                    </>
                   ) : (
-                    nombreMostrar(v)
+                    <>
+                      {nombreMostrar(v)}
+                      {v.alias && (
+                        <div style={{ fontSize: 12, color: '#6b7280' }}>{v.alias}</div>
+                      )}
+                    </>
                   )}
                 </td>
                 <td data-label="Categoría">

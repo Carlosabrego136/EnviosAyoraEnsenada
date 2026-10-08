@@ -189,6 +189,15 @@ ALTER TABLE vendedores ADD CONSTRAINT vendedores_numero_registro_unico UNIQUE (n
 -- comprimida del lado del navegador antes de subirla.
 ALTER TABLE vendedores ADD COLUMN IF NOT EXISTS foto_credencial TEXT;
 
+-- Alias / nombre del bazar o negocio del vendedor (ej. "El Bazar de
+-- Lupita"), distinto de su nombre real y distinto también del campo
+-- "facebook". La clienta identifica a sus vendedores más por este alias
+-- que por su nombre real, así que se busca y se muestra en las listas
+-- junto con el nombre cuando está capturado. Campo opcional, no rompe
+-- nada de lo que ya existía.
+ALTER TABLE vendedores ADD COLUMN IF NOT EXISTS alias TEXT;
+CREATE INDEX IF NOT EXISTS idx_vendedores_alias ON vendedores (lower(alias));
+
 -- ============================================================
 -- Registro de clientes (sección nueva del panel administrativo para
 -- capturar los datos de un envío/cliente y poder mandarlos por WhatsApp

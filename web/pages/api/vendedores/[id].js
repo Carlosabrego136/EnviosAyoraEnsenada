@@ -4,18 +4,23 @@ export default async function handler(req, res) {
   const { id } = req.query;
 
   if (req.method === 'PATCH') {
-    const { nombre, categoria_id, activo } = req.body;
+    const { nombre, alias, categoria_id, activo } = req.body;
     // "" se trata igual que null (el formulario manda cadena vacía cuando
     // elige "Sin categoría"), si no Postgres truena al convertir "" a uuid.
     const categoriaIdParam = categoria_id === null || categoria_id === '' ? '__null__' : categoria_id;
+    // El alias es opcional y se puede borrar a propósito (cadena vacía =
+    // "quitar alias"), por eso se usa el mismo truco de centinela que la
+    // categoría en vez de COALESCE (que nunca dejaría borrarlo).
+    const aliasParam = alias === null || alias === '' ? '__null__' : alias;
     const { rows } = await query(
       `UPDATE vendedores
        SET nombre = COALESCE($1, nombre),
-           categoria_id = CASE WHEN $2::text = '__null__' THEN NULL ELSE COALESCE($2::uuid, categoria_id) END,
-           activo = COALESCE($3, activo)
-       WHERE id = $4
+           alias = CASE WHEN $2::text = '__null__' THEN NULL ELSE COALESCE($2, alias) END,
+           categoria_id = CASE WHEN $3::text = '__null__' THEN NULL ELSE COALESCE($3::uuid, categoria_id) END,
+           activo = COALESCE($4, activo)
+       WHERE id = $5
        RETURNING *`,
-      [nombre, categoriaIdParam, activo, id]
+      [nombre, aliasParam, categoriaIdParam, activo, id]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Vendedor no encontrado' });
     return res.status(200).json(rows[0]);
