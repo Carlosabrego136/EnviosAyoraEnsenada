@@ -8,6 +8,11 @@ import Layout from '../components/Layout';
 //  4) regresa directo al paso 2 para escanear al SIGUIENTE cliente del MISMO vendedor,
 //     sin tener que volver a escanear al vendedor — útil para vendedores que entregan
 //     muchos paquetes seguidos. Solo se vuelve a escanear vendedor si se cambia de vendedor.
+// Clave para recordar en este celular cuál fue el último vendedor usado, así
+// no hay que volver a escanear su QR cada vez que se abre la página — pedido
+// explícito de la clienta, que siempre es la misma vendedora escaneando.
+const CLAVE_VENDEDOR_RECORDADO = 'ayora-escanear-vendedor';
+
 export default function Escanear() {
   const [paso, setPaso] = useState(1);
   const [vendedorQr, setVendedorQr] = useState('');
@@ -19,6 +24,14 @@ export default function Escanear() {
   const [mensaje, setMensaje] = useState(null);
   const [error, setError] = useState(null);
 
+  // Modo de los pasos 1 y 2: escanear con la cámara (como antes) o buscar
+  // directo por nombre en una lista — para quien prefiera no escanear nada.
+  const [modo, setModo] = useState('camara');
+  const [vendedoresLista, setVendedoresLista] = useState([]);
+  const [clientesLista, setClientesLista] = useState([]);
+  const [cargandoLista, setCargandoLista] = useState(false);
+  const [busquedaLista, setBusquedaLista] = useState('');
+
   const html5QrRef = useRef(null);
   const pasoRef = useRef(1); // el callback de la cámara siempre debe leer el paso más reciente
   const procesandoRef = useRef(false); // evita procesar el mismo código dos veces mientras cambiamos de paso
@@ -26,6 +39,89 @@ export default function Escanear() {
   useEffect(() => {
     pasoRef.current = paso;
   }, [paso]);
+
+  // Al abrir la página, si ya había un vendedor recordado de la vez pasada,
+  // se salta directo al paso 2 (escanear/buscar cliente) sin pedir de nuevo
+  // el QR del vendedor.
+  useEffect(() => {
+    try {
+      const guardado = window.localStorage.getItem(CLAVE_VENDEDOR_RECORDADO);
+      if (guardado) {
+        const datos = JSON.parse(guardado);
+        if (datos && datos.qr) {
+          setVendedorQr(datos.qr);
+          setVendedorNombre(datos.nombre || '');
+          setPaso(2);
+        }
+      }
+    } catch (err) {
+      // si el navegador no permite localStorage, simplemente no se recuerda
+    }
+  }, []);
+
+  // Cada vez que se confirma un vendedor (por escaneo, por búsqueda, o al
+  // llenarse su nombre tras el primer guardado), se recuerda en este
+  // celular para la próxima vez que se abra la página.
+  useEffect(() => {
+    if (!vendedorQr) return;
+    try {
+      window.localStorage.setItem(
+        CLAVE_VENDEDOR_RECORDADO,
+        JSON.stringify({ qr: vendedorQr, nombre: vendedorNombre || '' })
+      );
+    } catch (err) {}
+  }, [vendedorQr, vendedorNombre]);
+
+  // Selecciona un vendedor (desde la búsqueda) y avanza al paso 2, igual que
+  // si se hubiera escaneado su QR.
+  function elegirVendedor(v) {
+    procesandoRef.current = true;
+    setError(null);
+    setVendedorQr(v.qr_codigo);
+    setVendedorNombre(v.nombre);
+    setPaquetesGuardados(0);
+    setPaso(2);
+  }
+
+  // Selecciona un cliente (desde la búsqueda) y avanza al paso 3, igual que
+  // si se hubiera escaneado su QR.
+  function elegirCliente(c) {
+    procesandoRef.current = true;
+    setError(null);
+    setClienteQr(c.qr_codigo);
+    setPaso(3);
+  }
+
+  // Trae la lista de vendedores o clientes (según el paso) la primera vez
+  // que se usa el modo de búsqueda, para no pedirla si nunca se usa.
+  useEffect(() => {
+    if (modo !== 'buscar') return;
+    setBusquedaLista('');
+    async function cargarLista() {
+      setCargandoLista(true);
+      try {
+        if (paso === 1 && vendedoresLista.length === 0) {
+          const res = await fetch('/api/vendedores');
+          setVendedoresLista(await res.json());
+        } else if (paso === 2 && clientesLista.length === 0) {
+          const res = await fetch('/api/clientes');
+          setClientesLista(await res.json());
+        }
+      } catch (err) {
+        setError('No se pudo cargar la lista. Revisa tu conexión e intenta de nuevo.');
+      } finally {
+        setCargandoLista(false);
+      }
+    }
+    cargarLista();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modo, paso]);
+
+  const listaFiltrada = (paso === 1 ? vendedoresLista : clientesLista).filter((item) => {
+    const q = busquedaLista.trim().toLowerCase();
+    if (!q) return true;
+    return item.nombre.toLowerCase().includes(q);
+  });
 
   // Detiene y limpia por completo la cámara antes de volver a usarla.
   // Esto es lo que evita que el siguiente escaneo "arrastre" el código anterior.
@@ -90,7 +186,7 @@ export default function Escanear() {
   }
 
   useEffect(() => {
-    if (paso === 1 || paso === 2) {
+    if ((paso === 1 || paso === 2) && modo === 'camara') {
       iniciarScanner();
     } else {
       detenerScanner();
@@ -99,7 +195,7 @@ export default function Escanear() {
       detenerScanner();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paso]);
+  }, [paso, modo]);
 
   // Toma la foto elegida/tomada con la cámara del celular, la reduce de tamaño
   // (para que no pese varios MB) y la deja lista en base64 para guardarla.
@@ -170,6 +266,9 @@ export default function Escanear() {
     setMensaje(null);
     procesandoRef.current = false;
     setPaso(1);
+    try {
+      window.localStorage.removeItem(CLAVE_VENDEDOR_RECORDADO);
+    } catch (err) {}
   }
 
   function reiniciar() {
@@ -180,7 +279,8 @@ export default function Escanear() {
     procesandoRef.current = false;
     if (paso === 1) {
       // ya estamos en el paso 1: solo reiniciamos la cámara por si quedó en mal estado
-      iniciarScanner();
+      // (si está en modo "buscar" no hay cámara que reiniciar)
+      if (modo === 'camara') iniciarScanner();
     } else if (vendedorQr) {
       // seguimos con el mismo vendedor, solo reiniciamos el escaneo del cliente
       setPaso(2);
@@ -230,18 +330,47 @@ export default function Escanear() {
           {paso === 3 && 'confirma y guarda'}
         </p>
 
-        {paso === 1 && (
+        {paso === 1 && modo === 'camara' && (
           <p style={{ fontSize: 13, color: '#4b5563', marginTop: -6 }}>
             Apunta la cámara al código QR <b>impreso</b> del vendedor que entrega el paquete
             (su tarjeta o gafete). No es necesario buscarlo en el sistema.
           </p>
         )}
-        {paso === 2 && (
+        {paso === 2 && modo === 'camara' && (
           <p style={{ fontSize: 13, color: '#4b5563', marginTop: -6 }}>
             Ahora apunta la cámara al código QR <b>impreso</b> del cliente que va a recibir el
             paquete. Si este vendedor entrega varios paquetes, puedes seguir escaneando cliente
             tras cliente sin volver a escanear al vendedor.
           </p>
+        )}
+        {paso === 1 && modo === 'buscar' && (
+          <p style={{ fontSize: 13, color: '#4b5563', marginTop: -6 }}>
+            Escribe el nombre del vendedor y elígelo de la lista, sin necesidad de escanear su QR.
+          </p>
+        )}
+        {paso === 2 && modo === 'buscar' && (
+          <p style={{ fontSize: 13, color: '#4b5563', marginTop: -6 }}>
+            Escribe el nombre del cliente y elígelo de la lista, sin necesidad de escanear su QR.
+          </p>
+        )}
+
+        {(paso === 1 || paso === 2) && (
+          <div style={{ marginBottom: 10 }}>
+            <button
+              className={modo === 'camara' ? 'btn' : 'btn secondary'}
+              style={{ fontSize: 12.5, padding: '6px 10px', marginRight: 8 }}
+              onClick={() => setModo('camara')}
+            >
+              📷 Escanear
+            </button>
+            <button
+              className={modo === 'buscar' ? 'btn' : 'btn secondary'}
+              style={{ fontSize: 12.5, padding: '6px 10px' }}
+              onClick={() => setModo('buscar')}
+            >
+              🔎 Buscar por nombre
+            </button>
+          </div>
         )}
         {paso === 3 && (
           <p style={{ fontSize: 13, color: '#4b5563', marginTop: -6 }}>
@@ -255,9 +384,60 @@ export default function Escanear() {
         {mensaje && <p style={{ color: '#065f46', fontWeight: 600 }}>{mensaje}</p>}
         {error && <p style={{ color: '#b91c1c', fontWeight: 600 }}>{error}</p>}
 
-        {(paso === 1 || paso === 2) && (
+        {(paso === 1 || paso === 2) && modo === 'camara' && (
           <div>
             <div id="lector-qr" style={{ width: '100%', maxWidth: 400 }} />
+            <button className="btn secondary" onClick={reiniciar} style={{ marginTop: 10 }}>
+              Cancelar
+            </button>
+          </div>
+        )}
+
+        {(paso === 1 || paso === 2) && modo === 'buscar' && (
+          <div>
+            <input
+              type="text"
+              placeholder={paso === 1 ? 'Buscar vendedor por nombre...' : 'Buscar cliente por nombre...'}
+              value={busquedaLista}
+              onChange={(e) => setBusquedaLista(e.target.value)}
+              style={{ width: '100%', maxWidth: 400, marginBottom: 10 }}
+              autoFocus
+            />
+
+            {cargandoLista && <p style={{ fontSize: 13, color: '#6b7280' }}>Cargando lista...</p>}
+
+            {!cargandoLista && (
+              <div style={{ maxWidth: 400, maxHeight: 320, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 8 }}>
+                {listaFiltrada.length === 0 && (
+                  <p style={{ padding: 12, fontSize: 13, color: '#6b7280', margin: 0 }}>
+                    No se encontró {paso === 1 ? 'ningún vendedor' : 'ningún cliente'} con ese nombre.
+                  </p>
+                )}
+                {listaFiltrada.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => (paso === 1 ? elegirVendedor(item) : elegirCliente(item))}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '10px 12px',
+                      border: 'none',
+                      borderBottom: '1px solid #f1f5f9',
+                      background: '#fff',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                    }}
+                  >
+                    {item.nombre}
+                    {paso === 2 && item.categoria_nombre && (
+                      <span style={{ color: '#6b7280', fontSize: 12.5 }}> — {item.categoria_nombre}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <button className="btn secondary" onClick={reiniciar} style={{ marginTop: 10 }}>
               Cancelar
             </button>

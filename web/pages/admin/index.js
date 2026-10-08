@@ -9,6 +9,15 @@ const ESTADO_LABEL = {
   entregado: 'Entregado',
 };
 
+// Convierte la fecha de captura (viene como timestamp de Postgres) a un
+// formato corto y legible, igual que en el historial del cliente.
+function formatoFechaCaptura(fechaIso) {
+  if (!fechaIso) return '';
+  const f = new Date(fechaIso);
+  if (Number.isNaN(f.getTime())) return '';
+  return f.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
 export default function AdminPanel() {
   const [paquetes, setPaquetes] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -17,6 +26,7 @@ export default function AdminPanel() {
   const [busqueda, setBusqueda] = useState('');
   const [cargando, setCargando] = useState(true);
   const [vaciando, setVaciando] = useState(false);
+  const [avisoCopiado, setAvisoCopiado] = useState('');
 
   // Edición de paquetería/guía — se usa cuando ya se armó la caja de la
   // semana y por fin se sabe con qué paquetería se va a enviar y cuál es
@@ -182,6 +192,68 @@ export default function AdminPanel() {
     );
   });
 
+  // Copia la lista de paquetes que se está viendo en este momento (ya
+  // filtrada por el buscador y la categoría) como texto separado por
+  // tabulaciones, para que al pegarlo en Excel cada dato caiga en su propia
+  // columna — igual que el botón "Copiar para Excel" de Vendedores. Pedido
+  // de la clienta para poder ver de un vistazo, cada semana, cuáles
+  // paquetes ya registró.
+  async function copiarParaExcel() {
+    const encabezados = [
+      'Cliente',
+      'Vendedor',
+      'Categoría',
+      'Paquetería',
+      'Número de guía',
+      'Estado',
+      'Fecha de captura',
+    ];
+
+    const filas = filtrados.map((p) => [
+      p.cliente_nombre || '',
+      p.vendedor_nombre || '',
+      p.categoria_nombre || '',
+      p.paqueteria_nombre || '',
+      p.numero_guia || '',
+      ESTADO_LABEL[p.estado] || p.estado || '',
+      formatoFechaCaptura(p.capturado_en),
+    ]);
+
+    const texto = [encabezados, ...filas].map((fila) => fila.join('\t')).join('\n');
+
+    let copiado = false;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(texto);
+        copiado = true;
+      }
+    } catch (err) {
+      copiado = false;
+    }
+    if (!copiado) {
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = texto;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        copiado = true;
+      } catch (err) {
+        copiado = false;
+      }
+    }
+
+    setAvisoCopiado(
+      copiado
+        ? `Se copiaron ${filas.length} paquete${filas.length === 1 ? '' : 's'}. Ya puedes pegarlo en Excel (Ctrl/Cmd + V).`
+        : 'No se pudo copiar automáticamente. Intenta de nuevo.'
+    );
+    setTimeout(() => setAvisoCopiado(''), 6000);
+  }
+
   return (
     <Layout>
       <div className="card">
@@ -245,6 +317,24 @@ export default function AdminPanel() {
       </div>
 
       <div className="card">
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 10,
+            flexWrap: 'wrap',
+            marginBottom: 6,
+          }}
+        >
+          <h3 style={{ margin: 0 }}>Listado de paquetes</h3>
+          <button className="btn secondary" style={{ fontSize: 12.5, padding: '6px 10px' }} onClick={copiarParaExcel}>
+            📋 Copiar para Excel
+          </button>
+        </div>
+        {avisoCopiado && (
+          <p style={{ fontSize: 12.5, color: '#065f46', fontWeight: 600, marginTop: 0 }}>{avisoCopiado}</p>
+        )}
         {cargando ? (
           <p>Cargando...</p>
         ) : (
