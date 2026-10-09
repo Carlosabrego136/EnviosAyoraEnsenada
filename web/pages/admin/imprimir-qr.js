@@ -2,27 +2,22 @@ import { useEffect, useMemo, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 
-// Página para imprimir de un jalón los QR de todos los vendedores y/o
-// clientes (en vez de entrar uno por uno a /qr/[tipo]/[id]). Pensada para
-// generar las tarjetas/gafetes físicos que se reparten y se escanean después
-// en /escanear.
-// Tope de tarjetas que se muestran/cargan de un jalón. Los clientes normales
-// mandan entre 2 y 20-30 paquetes, así que 30 cubre de sobra ese caso sin
-// arriesgarse a que el celular tenga que cargar cientos de QR a la vez (el
-// caso raro de más de 300, del bloque 24.5, la clienta dijo que lo puede
-// manejar aparte si hace falta).
-const LIMITE_TARJETAS = 30;
-
-// Cuántas tarjetas caben en una hoja carta con el tamaño actual del QR (3
-// columnas x 3 filas). Antes dejábamos que el navegador repartiera todo el
-// listado en las hojas que hicieran falta solo con flexbox + wrap, y en
-// computadora funcionaba, pero en el celular de la clienta (Chrome Android)
-// el motor de impresión NO reparte el contenido en varias hojas — corta todo
-// después de la primera y ni siquiera ofrece más páginas en el diálogo de
-// imprimir. Por eso ahora partimos la lista en grupos de este tamaño
-// nosotros mismos y forzamos un salto de página entre cada grupo, para que
-// no dependa de que el navegador lo calcule bien.
+// Página para seleccionar varios vendedores y/o clientes e imprimir de un
+// jalón sus tarjetas de QR (en vez de entrar uno por uno a /qr/[tipo]/[id]).
+// Pensada para generar las tarjetas/gafetes físicos que se reparten y se
+// escanean después en /escanear.
+//
+// Mismo tamaño de tarjeta que las credenciales y las tarjetas de QR de la
+// app de Vendedores (CR80 vertical: 54mm x 85.6mm), para que quepan las
+// mismas 9 tarjetas por hoja (3 columnas x 3 filas) igual en las tres
+// pantallas.
 const TARJETAS_POR_HOJA = 9;
+
+// Las claves de selección combinan tipo + id porque un vendedor y un
+// cliente podrían compartir el mismo id (son tablas distintas).
+function clave(persona) {
+  return `${persona.tipo}:${persona.id}`;
+}
 
 export default function ImprimirQr() {
   const [vendedores, setVendedores] = useState([]);
@@ -30,11 +25,15 @@ export default function ImprimirQr() {
   const [cargando, setCargando] = useState(true);
   const [mostrar, setMostrar] = useState('ambos'); // 'ambos' | 'vendedores' | 'clientes'
   const [busqueda, setBusqueda] = useState('');
-  // Cuántas imágenes de QR ya terminaron de cargar (o fallaron) de las que se
-  // están mostrando ahorita. Mientras no coincida con el total, no dejamos
-  // imprimir — así nunca vuelve a pasar que se manden a imprimir QR en blanco
-  // porque la imagen no alcanzó a cargar a tiempo.
-  const [cargadas, setCargadas] = useState(0);
+  const [seleccionados, setSeleccionados] = useState(() => new Set());
+  // Claves ("tipo:id") de las imágenes de QR que ya terminaron de cargar (o
+  // fallaron) de las que se están mostrando ahorita. Este set SOLO CRECE,
+  // nunca se reinicia a mano: antes había un contador que se reiniciaba a 0
+  // cada vez que cambiaba la selección, y eso borraba el avance de QR que
+  // ya habían cargado, dejando el botón de imprimir atorado en "Cargando
+  // QR..." aunque ya estuviera todo listo (mismo bug que ya se corrigió en
+  // las pantallas de la app de Vendedores).
+  const [imagenesListas, setImagenesListas] = useState(() => new Set());
 
   useEffect(() => {
     async function cargar() {
@@ -47,34 +46,35 @@ export default function ImprimirQr() {
     cargar();
   }, []);
 
-  const tarjetasCoincidentes = useMemo(() => {
-    const q = busqueda.trim().toLowerCase();
-    const deVendedores =
-      mostrar === 'clientes'
-        ? []
-        : vendedores
-            .filter((v) => !q || v.nombre.toLowerCase().includes(q))
-            .map((v) => ({ tipo: 'vendedor', id: v.id, nombre: v.nombre, qrCodigo: v.qr_codigo }));
-    const deClientes =
-      mostrar === 'vendedores'
-        ? []
-        : clientes
-            .filter((c) => !q || c.nombre.toLowerCase().includes(q))
-            .map((c) => ({ tipo: 'cliente', id: c.id, nombre: c.nombre, qrCodigo: c.qr_codigo }));
-    return [...deVendedores, ...deClientes];
-  }, [vendedores, clientes, mostrar, busqueda]);
-
-  // Recortamos a LIMITE_TARJETAS para no cargar/imprimir cientos de QR de
-  // golpe. Si hay más coincidencias de las que se muestran, se lo avisamos
-  // a quien esté usando la pantalla para que afine la búsqueda.
-  const tarjetas = useMemo(
-    () => tarjetasCoincidentes.slice(0, LIMITE_TARJETAS),
-    [tarjetasCoincidentes]
+  const personas = useMemo(
+    () => [
+      ...vendedores.map((v) => ({ tipo: 'vendedor', id: v.id, nombre: v.nombre, qrCodigo: v.qr_codigo })),
+      ...clientes.map((c) => ({ tipo: 'cliente', id: c.id, nombre: c.nombre, qrCodigo: c.qr_codigo })),
+    ],
+    [vendedores, clientes]
   );
-  const hayMasDeLasMostradas = tarjetasCoincidentes.length > tarjetas.length;
 
-  // Partimos las tarjetas a imprimir en grupos del tamaño de una hoja, para
-  // forzar el salto de página nosotros mismos (ver nota de TARJETAS_POR_HOJA).
+  const personasFiltradas = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    return personas.filter((p) => {
+      if (mostrar === 'vendedores' && p.tipo !== 'vendedor') return false;
+      if (mostrar === 'clientes' && p.tipo !== 'cliente') return false;
+      if (q && !p.nombre.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [personas, mostrar, busqueda]);
+
+  // Las tarjetas a imprimir son las que están marcadas con su casilla, sin
+  // importar el filtro o la búsqueda actual — así no se pierde la
+  // selección al cambiar entre "Solo vendedores"/"Solo clientes" o al
+  // buscar otro nombre. Antes esta pantalla solo dejaba imprimir los
+  // primeros 30 resultados de la búsqueda, sin poder elegir exactamente a
+  // quién.
+  const tarjetas = useMemo(
+    () => personas.filter((p) => seleccionados.has(clave(p))),
+    [personas, seleccionados]
+  );
+
   const hojas = useMemo(() => {
     const grupos = [];
     for (let i = 0; i < tarjetas.length; i += TARJETAS_POR_HOJA) {
@@ -83,13 +83,34 @@ export default function ImprimirQr() {
     return grupos;
   }, [tarjetas]);
 
-  // Cada vez que cambia el filtro o la búsqueda, la lista de tarjetas es
-  // distinta, así que reiniciamos el contador de imágenes cargadas.
-  useEffect(() => {
-    setCargadas(0);
-  }, [tarjetas]);
+  const cargadas = useMemo(
+    () => tarjetas.filter((p) => imagenesListas.has(clave(p))).length,
+    [tarjetas, imagenesListas]
+  );
 
   const todasCargadas = tarjetas.length > 0 && cargadas >= tarjetas.length;
+
+  function alternar(persona) {
+    const k = clave(persona);
+    setSeleccionados((prev) => {
+      const siguiente = new Set(prev);
+      if (siguiente.has(k)) siguiente.delete(k);
+      else siguiente.add(k);
+      return siguiente;
+    });
+  }
+
+  function seleccionarVisibles() {
+    setSeleccionados((prev) => {
+      const siguiente = new Set(prev);
+      personasFiltradas.forEach((p) => siguiente.add(clave(p)));
+      return siguiente;
+    });
+  }
+
+  function quitarSeleccion() {
+    setSeleccionados(new Set());
+  }
 
   function imprimir() {
     if (!todasCargadas) {
@@ -100,7 +121,7 @@ export default function ImprimirQr() {
   }
 
   return (
-    <div className="imprimir-qr-pagina">
+    <div className="iq-pagina">
       <Head>
         <title>Imprimir QR — ENVIOS AYORA</title>
       </Head>
@@ -147,55 +168,80 @@ export default function ImprimirQr() {
           placeholder="Buscar por nombre..."
         />
 
-        <button className="btn" onClick={imprimir} disabled={!todasCargadas}>
-          {todasCargadas
+        <button className="btn secondary" onClick={seleccionarVisibles}>
+          Seleccionar todos los que se muestran
+        </button>
+        <button className="btn secondary" onClick={quitarSeleccion}>
+          Quitar selección
+        </button>
+
+        <button className="btn" onClick={imprimir} disabled={tarjetas.length === 0 || !todasCargadas}>
+          {tarjetas.length === 0
+            ? 'Imprimir'
+            : todasCargadas
             ? `Imprimir (${tarjetas.length})`
             : `Cargando QR... (${cargadas}/${tarjetas.length})`}
         </button>
       </div>
 
-      {cargando ? (
-        <p className="no-imprimir" style={{ padding: 20 }}>
-          Cargando...
-        </p>
-      ) : tarjetas.length === 0 ? (
-        <p className="no-imprimir" style={{ padding: 20 }}>
-          No hay nadie que coincida con la búsqueda.
-        </p>
-      ) : (
-        <>
-          {hayMasDeLasMostradas && (
-            <p className="no-imprimir iq-aviso-limite">
-              Hay {tarjetasCoincidentes.length} coincidencias, se están mostrando las primeras{' '}
-              {LIMITE_TARJETAS}. Afina la búsqueda por nombre para ver o imprimir el resto.
-            </p>
-          )}
-          <div className="iq-hojas">
-            {hojas.map((grupo, indiceHoja) => (
-              <div className="iq-hoja" key={indiceHoja}>
-                {grupo.map((t) => (
-                  <div className="iq-tarjeta" key={`${t.tipo}-${t.id}`}>
-                    <img src="/logo.jpg" alt="ENVIOS AYORA" className="iq-logo" />
-                    <p className="iq-etiqueta">{t.tipo === 'vendedor' ? 'Vendedor' : 'Cliente'}</p>
-                    <p className="iq-nombre">{t.nombre}</p>
-                    <img
-                      src={`/api/qr-imagen?valor=${encodeURIComponent(t.qrCodigo)}`}
-                      alt={`Código QR de ${t.nombre}`}
-                      className="iq-imagen"
-                      onLoad={() => setCargadas((n) => n + 1)}
-                      onError={() => setCargadas((n) => n + 1)}
-                    />
-                    <p className="iq-codigo">{t.qrCodigo}</p>
-                  </div>
-                ))}
+      <div className="iq-cuerpo no-imprimir">
+        {cargando ? (
+          <p className="iq-vacio">Cargando...</p>
+        ) : personasFiltradas.length === 0 ? (
+          <p className="iq-vacio">No hay nadie que coincida con la búsqueda.</p>
+        ) : (
+          <div className="iq-lista">
+            {personasFiltradas.map((p) => (
+              <label key={clave(p)} className="iq-fila">
+                <input
+                  type="checkbox"
+                  checked={seleccionados.has(clave(p))}
+                  onChange={() => alternar(p)}
+                />
+                <span className="iq-fila-nombre">{p.nombre}</span>
+                <span className={`iq-fila-tipo iq-fila-tipo-${p.tipo}`}>
+                  {p.tipo === 'vendedor' ? 'Vendedor' : 'Cliente'}
+                </span>
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Las tarjetas a imprimir se generan siempre (ocultas en pantalla con
+          height:0, no con display:none, para que las imágenes de los QR
+          puedan precargar antes de imprimir sin ocupar espacio visible). */}
+      <div className="iq-hojas">
+        {hojas.map((grupo, indiceHoja) => (
+          <div className="iq-hoja" key={indiceHoja}>
+            {grupo.map((p) => (
+              <div className="iq-tarjeta" key={clave(p)}>
+                <img src="/logo.jpg" alt="ENVIOS AYORA" className="iq-logo" />
+                <p className="iq-etiqueta">{p.tipo === 'vendedor' ? 'Vendedor' : 'Cliente'}</p>
+                <h1 className="iq-nombre">{p.nombre}</h1>
+                <img
+                  src={`/api/qr-imagen?valor=${encodeURIComponent(p.qrCodigo)}`}
+                  alt={`Código QR de ${p.nombre}`}
+                  className="iq-imagen"
+                  onLoad={() =>
+                    setImagenesListas((prev) => (prev.has(clave(p)) ? prev : new Set(prev).add(clave(p))))
+                  }
+                  onError={() =>
+                    setImagenesListas((prev) => (prev.has(clave(p)) ? prev : new Set(prev).add(clave(p))))
+                  }
+                />
+                <p className="iq-codigo">{p.qrCodigo}</p>
               </div>
             ))}
           </div>
-        </>
-      )}
+        ))}
+      </div>
 
       <style jsx global>{`
-        .imprimir-qr-pagina {
+        body {
+          background: #fff !important;
+        }
+        .iq-pagina {
           min-height: 100vh;
           background: #f3f4f6;
         }
@@ -223,8 +269,14 @@ export default function ImprimirQr() {
           gap: 5px;
           white-space: nowrap;
         }
+        .iq-filtros input {
+          width: auto;
+          margin: 0;
+        }
         .iq-buscar {
           margin: 0;
+          flex: 1;
+          min-width: 160px;
           max-width: 220px;
           padding: 8px 10px;
           border-radius: 8px;
@@ -235,98 +287,145 @@ export default function ImprimirQr() {
           color: #fff;
           border: 1px solid #374151;
         }
+        .iq-barra .btn:disabled {
+          opacity: 0.6;
+          cursor: default;
+        }
 
-        .iq-aviso-limite {
+        .iq-cuerpo {
+          padding: 16px;
+        }
+        .iq-vacio {
+          color: #6b7280;
+          padding: 10px 4px;
+        }
+        .iq-lista {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          max-width: 640px;
+        }
+        .iq-fila {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          background: #fff;
+          border: 1px solid #e5e7eb;
+          border-radius: 10px;
+          padding: 10px 12px;
+          flex-wrap: wrap;
+          cursor: pointer;
+        }
+        .iq-fila input {
+          width: auto;
           margin: 0;
-          padding: 10px 20px;
-          background: #fef3c7;
+        }
+        .iq-fila-nombre {
+          font-weight: 700;
+          color: #111827;
+        }
+        .iq-fila-tipo {
+          margin-left: auto;
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          border-radius: 6px;
+          padding: 2px 8px;
+        }
+        .iq-fila-tipo-vendedor {
+          color: #33455f;
+          background: #eef0f4;
+        }
+        .iq-fila-tipo-cliente {
           color: #92400e;
-          font-size: 13px;
+          background: #fef3c7;
         }
 
         .iq-hojas {
-          padding: 20px;
-        }
-        .iq-hoja {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-          gap: 16px;
-        }
-        .iq-hoja + .iq-hoja {
-          margin-top: 24px;
-          padding-top: 24px;
-          border-top: 2px dashed #d1d5db;
+          /* Oculto en pantalla sin sacarlo del flujo normal del documento,
+             para que las imágenes de los QR puedan precargar antes de
+             imprimir sin ocupar espacio visible ni depender de un cambio
+             de "position" justo al imprimir (eso es lo que causaba hojas
+             incompletas o tarjetas movidas al imprimir varias de un
+             jalón). */
+          height: 0;
+          overflow: hidden;
         }
 
         .iq-tarjeta {
-          background: #fff;
-          border: 1px solid #e5e7eb;
-          border-radius: 12px;
-          padding: 16px;
+          width: 54mm;
+          height: 85.6mm;
+          border: 1px solid #d1d5db;
+          border-radius: 3mm;
+          padding: 4mm 4mm;
           text-align: center;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
-          break-inside: avoid;
+          background: #fff;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
         }
         .iq-logo {
-          width: 90px;
-          margin: 0 auto 8px;
-          display: block;
-          border-radius: 6px;
+          height: 10mm;
+          margin-bottom: 2mm;
+          border-radius: 2px;
         }
         .iq-etiqueta {
           margin: 0;
-          font-size: 11.5px;
+          font-size: 6.5px;
           text-transform: uppercase;
           letter-spacing: 0.06em;
           color: #6b7280;
           font-weight: 700;
         }
         .iq-nombre {
-          margin: 4px 0 10px;
-          font-size: 16px;
-          font-weight: 700;
-          color: #111827;
+          margin: 0;
+          font-size: 11px;
+          font-weight: 800;
+          color: #101a30;
+          line-height: 1.15;
         }
         .iq-imagen {
-          width: 150px;
-          height: 150px;
-          display: block;
-          margin: 0 auto 8px;
+          width: 30mm;
+          max-width: 30mm;
+          margin: 3mm auto;
         }
         .iq-codigo {
-          margin: 0;
-          font-size: 11.5px;
+          margin-top: 1mm;
+          font-size: 6.5px;
           color: #6b7280;
           word-break: break-all;
         }
 
-        .iq-barra .btn:disabled {
-          opacity: 0.6;
-          cursor: default;
-        }
-
         @media print {
+          /* Define explícitamente el tamaño de hoja y márgenes chicos: sin
+             esto cada dispositivo/impresora usa sus propios márgenes por
+             default (que varían bastante entre computadora y celular), y
+             como las tarjetas miden exactamente 54mm x 85.6mm, un margen
+             de más podía hacer que no cupiera la tercera fila completa en
+             una sola hoja física — eso es lo que se veía como una hoja
+             "incompleta" o con tarjetas que se recorren a la siguiente. */
+          @page {
+            size: letter;
+            margin: 4mm;
+          }
           .no-imprimir {
             display: none !important;
           }
-          .imprimir-qr-pagina {
+          .iq-pagina {
             background: #fff;
           }
           .iq-hojas {
-            padding: 0;
+            height: auto;
+            overflow: visible;
           }
-          /* IMPORTANTE: NO dejamos que el navegador reparta las tarjetas en
-             hojas por su cuenta (ni con grid ni con flex se puede confiar en
-             eso en todos los celulares/navegadores — a la clienta, en Chrome
-             Android, se le cortaba todo después de la primera hoja de 9 y ni
-             siquiera ofrecía más páginas). En vez de eso, cada ".iq-hoja" ya
-             viene armado desde React con como máximo TARJETAS_POR_HOJA
-             tarjetas, y aquí forzamos que cada una sea su propia hoja física
-             con un salto de página explícito. */
           .iq-hoja {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
+            display: grid;
+            grid-template-columns: repeat(3, 54mm);
+            grid-auto-rows: 85.6mm;
+            gap: 0;
+            justify-content: center;
             page-break-after: always;
             break-after: page;
           }
@@ -334,17 +433,10 @@ export default function ImprimirQr() {
             page-break-after: auto;
             break-after: auto;
           }
-          .iq-hoja + .iq-hoja {
-            margin-top: 0;
-            padding-top: 0;
-            border-top: none;
-          }
           .iq-tarjeta {
-            box-shadow: none;
-            border: 1px solid #d1d5db;
+            border: none;
             page-break-inside: avoid;
             break-inside: avoid;
-            width: 31.5%;
           }
         }
       `}</style>
