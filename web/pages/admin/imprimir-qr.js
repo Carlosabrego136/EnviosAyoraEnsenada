@@ -39,17 +39,57 @@ export default function ImprimirQr() {
   // "Reintentar" en vez de dejarlo así nada más.
   const [erroresCarga, setErroresCarga] = useState(() => new Set());
   const [intentoCarga, setIntentoCarga] = useState(0);
+  // Si al pedir la lista de vendedores/clientes algo falla (conexión lenta
+  // o inestable, o se tarda demasiado), antes esta pantalla se quedaba
+  // congelada en "Cargando..." para siempre, sin ningún aviso ni forma de
+  // reintentar — la única salida era recargar toda la página. Ahora se
+  // avisa y se ofrece un botón de "Reintentar" (mismo mecanismo ya usado
+  // en las demás pantallas de impresión del proyecto).
+  const [errorListaPersonas, setErrorListaPersonas] = useState(false);
+  const [intentoListaPersonas, setIntentoListaPersonas] = useState(0);
 
   useEffect(() => {
+    let cancelado = false;
+    const controlador = new AbortController();
+    // Límite de 20 segundos: si la conexión está muy lenta o se cae a
+    // medias, se corta sola en vez de quedarse esperando para siempre.
+    const limite = setTimeout(() => controlador.abort(), 20000);
+
     async function cargar() {
       setCargando(true);
-      const [vRes, cRes] = await Promise.all([fetch('/api/vendedores'), fetch('/api/clientes')]);
-      setVendedores(await vRes.json());
-      setClientes(await cRes.json());
-      setCargando(false);
+      setErrorListaPersonas(false);
+      try {
+        const [vRes, cRes] = await Promise.all([
+          fetch('/api/vendedores', { signal: controlador.signal, cache: 'no-store' }),
+          fetch('/api/clientes', { signal: controlador.signal, cache: 'no-store' }),
+        ]);
+        if (!vRes.ok || !cRes.ok) {
+          throw new Error('Respuesta no exitosa del servidor');
+        }
+        const [vJson, cJson] = await Promise.all([vRes.json(), cRes.json()]);
+        clearTimeout(limite);
+        if (cancelado) return;
+        setVendedores(vJson);
+        setClientes(cJson);
+        setCargando(false);
+      } catch (err) {
+        clearTimeout(limite);
+        if (cancelado) return;
+        setErrorListaPersonas(true);
+        setCargando(false);
+      }
     }
     cargar();
-  }, []);
+    return () => {
+      cancelado = true;
+      clearTimeout(limite);
+      controlador.abort();
+    };
+  }, [intentoListaPersonas]);
+
+  function reintentarListaPersonas() {
+    setIntentoListaPersonas((n) => n + 1);
+  }
 
   const personas = useMemo(
     () => [
@@ -208,6 +248,15 @@ export default function ImprimirQr() {
         </button>
       </div>
 
+      {errorListaPersonas && (
+        <p className="iq-aviso iq-aviso-error no-imprimir">
+          No se pudo cargar la lista de vendedores y clientes (tardó demasiado o hubo un problema de conexión).{' '}
+          <button className="btn secondary iq-btn-reintentar" onClick={reintentarListaPersonas}>
+            Reintentar
+          </button>
+        </p>
+      )}
+
       {erroresVisibles.length > 0 && (
         <p className="iq-aviso iq-aviso-error no-imprimir">
           {erroresVisibles.length === 1
@@ -222,6 +271,8 @@ export default function ImprimirQr() {
       <div className="iq-cuerpo no-imprimir">
         {cargando ? (
           <p className="iq-vacio">Cargando...</p>
+        ) : errorListaPersonas ? (
+          <p className="iq-vacio">No se pudo cargar la lista. Use el botón de "Reintentar" de arriba.</p>
         ) : personasFiltradas.length === 0 ? (
           <p className="iq-vacio">No hay nadie que coincida con la búsqueda.</p>
         ) : (
