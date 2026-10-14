@@ -8,8 +8,8 @@ import Layout from '../../components/Layout';
 // rangos").
 const TABULADOR = [
   { kg: 1, aereo: 950, terrestre: 875, bajapack: 600 },
-  { kg: 5, aereo: 1000, terrestre: 910, bajapack: 650 },
-  { kg: 10, aereo: 1400, terrestre: 1100, bajapack: 850 },
+  { kg: 5, aereo: 1000, terrestre: 900, bajapack: 650 },
+  { kg: 10, aereo: 1400, terrestre: 1050, bajapack: 850 },
   { kg: 15, aereo: 1550, terrestre: 1250, bajapack: 1000 },
   { kg: 20, aereo: 1700, terrestre: 1450, bajapack: 1200 },
   { kg: 25, aereo: 2000, terrestre: 1650, bajapack: 1500 },
@@ -22,7 +22,7 @@ const TABULADOR = [
   { kg: 60, aereo: 3900, terrestre: 2900, bajapack: 2600 },
 ];
 
-const CARGO_ZONA_EXTENDIDA = 285;
+const CARGO_ZONA_EXTENDIDA = 280;
 
 const ORDINALES = ['1ra', '2da', '3ra', '4ta', '5ta', '6ta', '7ma', '8va'];
 
