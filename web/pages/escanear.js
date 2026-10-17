@@ -467,10 +467,29 @@ export default function Escanear() {
 
             <label>Foto del paquete (opcional)</label>
             {!fotoBase64 && (
-              /* Sin el atributo "capture": así se muestran las dos opciones
-                 (tomar foto o elegir de archivos/galería) en vez de forzar
-                 que se abra directo la cámara. */
-              <input type="file" accept="image/*" onChange={manejarFoto} />
+              // Dos botones separados y explícitos en vez de un solo input
+              // sin "capture": en varios celulares Android, ese input único
+              // a veces deja de ofrecer la cámara y solo muestra "elegir
+              // archivo" (justo lo que reportó la clienta). Con un botón
+              // para cada cosa, las dos opciones quedan siempre visibles
+              // sin depender de lo que decida el teléfono — mismo patrón ya
+              // usado en el alta de vendedores.
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                <label className="btn secondary" style={{ fontSize: 13, padding: '8px 14px', cursor: 'pointer' }}>
+                  📷 Tomar foto
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={manejarFoto}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+                <label className="btn secondary" style={{ fontSize: 13, padding: '8px 14px', cursor: 'pointer' }}>
+                  🖼 Elegir de galería
+                  <input type="file" accept="image/*" onChange={manejarFoto} style={{ display: 'none' }} />
+                </label>
+              </div>
             )}
             {fotoCargando && <p style={{ fontSize: 13, color: '#6b7280' }}>Procesando foto...</p>}
             {fotoBase64 && (
