@@ -30,6 +30,16 @@ export async function getServerSideProps({ params }) {
   };
 }
 
+// Nombre más grande en la tarjeta del CLIENTE (para que se lea fácil una vez
+// impresa y enmicada); la del vendedor queda como estaba.
+function claseNombreCliente(nombre) {
+  const largo = (nombre || '').trim().length;
+  if (largo <= 14) return 'qr-nombre-xl';
+  if (largo <= 24) return 'qr-nombre-l';
+  if (largo <= 34) return 'qr-nombre-m';
+  return 'qr-nombre-s';
+}
+
 export default function VerQr({ tipo, id, nombre, qrCodigo }) {
   const etiqueta = tipo === 'vendedor' ? 'Vendedor' : 'Cliente';
   const volverHref = tipo === 'vendedor' ? '/admin/vendedores' : '/admin/clientes';
@@ -52,7 +62,7 @@ export default function VerQr({ tipo, id, nombre, qrCodigo }) {
       <div className="qr-tarjeta">
         <img src="/logo.jpg" alt="ENVIOS AYORA" className="qr-logo" />
         <p className="qr-etiqueta">{etiqueta}</p>
-        <h1 className="qr-nombre">{nombre}</h1>
+        <h1 className={`qr-nombre${tipo === 'cliente' ? ` ${claseNombreCliente(nombre)}` : ''}`}>{nombre}</h1>
         <img src={`/api/qr/${tipo}/${id}`} alt={`Código QR de ${nombre}`} className="qr-imagen" />
         <p className="qr-codigo">{qrCodigo}</p>
       </div>
@@ -104,6 +114,21 @@ export default function VerQr({ tipo, id, nombre, qrCodigo }) {
           font-weight: 800;
           margin: 0 0 20px;
           color: #111827;
+        }
+        .qr-nombre.qr-nombre-xl {
+          font-size: 40px;
+        }
+        .qr-nombre.qr-nombre-l {
+          font-size: 34px;
+        }
+        .qr-nombre.qr-nombre-m {
+          font-size: 28px;
+        }
+        .qr-nombre.qr-nombre-s {
+          font-size: 24px;
+        }
+        .qr-nombre {
+          overflow-wrap: anywhere;
         }
         .qr-imagen {
           width: 100%;

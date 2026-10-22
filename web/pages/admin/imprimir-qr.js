@@ -19,6 +19,20 @@ function clave(persona) {
   return `${persona.tipo}:${persona.id}`;
 }
 
+// Tamaño del nombre en las tarjetas de CLIENTE. Estas tarjetas se imprimen y
+// se enmican para que las personas que ayudan las escaneen rápido, y una de
+// ellas es una señora mayor a la que le costaba leer el nombre (antes salía
+// en 11px). Entre más corto el nombre, más grande la letra; los nombres muy
+// largos bajan un poco para que quepan completos en 2-3 renglones sin
+// salirse de la tarjeta. Las tarjetas de vendedor no cambian.
+function tamanoNombreCliente(nombre) {
+  const largo = (nombre || '').trim().length;
+  if (largo <= 14) return 'xl';
+  if (largo <= 24) return 'l';
+  if (largo <= 34) return 'm';
+  return 's';
+}
+
 export default function ImprimirQr() {
   const [vendedores, setVendedores] = useState([]);
   const [clientes, setClientes] = useState([]);
@@ -301,10 +315,12 @@ export default function ImprimirQr() {
         {hojas.map((grupo, indiceHoja) => (
           <div className="iq-hoja" key={indiceHoja}>
             {grupo.map((p) => (
-              <div className="iq-tarjeta" key={clave(p)}>
+              <div className={`iq-tarjeta${p.tipo === 'cliente' ? ' iq-tarjeta-cliente' : ''}`} key={clave(p)}>
                 <img src="/logo.jpg" alt="ENVIOS AYORA" className="iq-logo" />
                 <p className="iq-etiqueta">{p.tipo === 'vendedor' ? 'Vendedor' : 'Cliente'}</p>
-                <h1 className="iq-nombre">{p.nombre}</h1>
+                <h1 className={`iq-nombre${p.tipo === 'cliente' ? ` iq-nombre-${tamanoNombreCliente(p.nombre)}` : ''}`}>
+                  {p.nombre}
+                </h1>
                 <img
                   src={`/api/qr-imagen?valor=${encodeURIComponent(p.qrCodigo)}${
                     intentoCarga > 0 ? `&r=${intentoCarga}` : ''
@@ -506,6 +522,25 @@ export default function ImprimirQr() {
           font-weight: 800;
           color: #101a30;
           line-height: 1.15;
+        }
+        /* Nombre más grande SOLO en tarjetas de cliente (ver
+           tamanoNombreCliente). overflow-wrap evita que una palabra muy
+           larga se salga de la tarjeta. */
+        .iq-tarjeta-cliente .iq-nombre {
+          line-height: 1.12;
+          overflow-wrap: anywhere;
+        }
+        .iq-tarjeta-cliente .iq-nombre-xl {
+          font-size: 22px;
+        }
+        .iq-tarjeta-cliente .iq-nombre-l {
+          font-size: 19px;
+        }
+        .iq-tarjeta-cliente .iq-nombre-m {
+          font-size: 16px;
+        }
+        .iq-tarjeta-cliente .iq-nombre-s {
+          font-size: 14px;
         }
         .iq-imagen {
           width: 30mm;
