@@ -2,27 +2,44 @@ import { useState } from 'react';
 import Layout from '../../components/Layout';
 
 // Tabulador oficial 2026 (tal como lo maneja la clienta): por cada peso "techo"
-// se muestra el precio de Aéreo, Terrestre y Baja Pack Express. Si el paquete
-// pesa menos que un techo pero más que el anterior, se cobra el techo de
-// arriba (así es como ella cotiza: "las medidas y peso son variables y van en
-// rangos").
+// se muestra el precio de Aéreo, Terrestre, Terrestre Tijuana y Baja Pack
+// Express. Si el paquete pesa menos que un techo pero más que el anterior, se
+// cobra el techo de arriba (así es como ella cotiza: "las medidas y peso son
+// variables y van en rangos").
+//
+// "tijuana" = Terrestre Tijuana: servicio con otro proveedor (más caro) que no
+// estaba en el tabulador original; sale directo de Tijuana y es rastreable
+// desde el día 1. Precios confirmados por la clienta (noviembre 2026).
 const TABULADOR = [
-  { kg: 1, aereo: 950, terrestre: 875, bajapack: 600 },
-  { kg: 5, aereo: 1000, terrestre: 900, bajapack: 650 },
-  { kg: 10, aereo: 1400, terrestre: 1050, bajapack: 850 },
-  { kg: 15, aereo: 1550, terrestre: 1250, bajapack: 1000 },
-  { kg: 20, aereo: 1700, terrestre: 1450, bajapack: 1200 },
-  { kg: 25, aereo: 2000, terrestre: 1650, bajapack: 1500 },
-  { kg: 30, aereo: 2300, terrestre: 1850, bajapack: 1650 },
-  { kg: 35, aereo: 2600, terrestre: 2000, bajapack: 1800 },
-  { kg: 40, aereo: 2800, terrestre: 2150, bajapack: 2100 },
-  { kg: 45, aereo: 3100, terrestre: 2300, bajapack: 2250 },
-  { kg: 50, aereo: 3350, terrestre: 2450, bajapack: 2350 },
-  { kg: 55, aereo: 3650, terrestre: 2700, bajapack: 2450 },
-  { kg: 60, aereo: 3900, terrestre: 2900, bajapack: 2600 },
+  { kg: 1, aereo: 950, terrestre: 875, tijuana: 950, bajapack: 600 },
+  { kg: 5, aereo: 1000, terrestre: 900, tijuana: 1100, bajapack: 650 },
+  { kg: 10, aereo: 1400, terrestre: 1050, tijuana: 1300, bajapack: 850 },
+  { kg: 15, aereo: 1550, terrestre: 1250, tijuana: 1500, bajapack: 1000 },
+  { kg: 20, aereo: 1700, terrestre: 1450, tijuana: 1700, bajapack: 1200 },
+  { kg: 25, aereo: 2000, terrestre: 1650, tijuana: 1900, bajapack: 1500 },
+  { kg: 30, aereo: 2300, terrestre: 1850, tijuana: 2100, bajapack: 1650 },
+  { kg: 35, aereo: 2600, terrestre: 2000, tijuana: 2250, bajapack: 1800 },
+  { kg: 40, aereo: 2800, terrestre: 2150, tijuana: 2400, bajapack: 2100 },
+  { kg: 45, aereo: 3100, terrestre: 2300, tijuana: 2650, bajapack: 2250 },
+  { kg: 50, aereo: 3350, terrestre: 2450, tijuana: 2750, bajapack: 2350 },
+  { kg: 55, aereo: 3650, terrestre: 2700, tijuana: 3000, bajapack: 2450 },
+  { kg: 60, aereo: 3900, terrestre: 2900, tijuana: 3200, bajapack: 2600 },
 ];
 
+// Cargo de zona extendida: aplica cuando la paquetería marca el código postal
+// de destino como zona extendida. Se suma una sola vez por servicio.
 const CARGO_ZONA_EXTENDIDA = 280;
+
+// Texto "Importante" que va SIEMPRE después de los precios (por temas de
+// aduana es información obligatoria al cotizar; así a quien ayuda a mandar
+// cotizaciones no se le pasa). El párrafo de Terrestre Tijuana solo se
+// incluye cuando ese servicio va en la cotización.
+const TEXTO_IMPORTANTE_AEREO =
+  'El servicio aéreo tiene un cargo adicional de 500.00 pesos para que la caja pueda salir de la ciudad de Tijuana, y no tiene tiempo de arribo a destino; normalmente está tardando de 8 a 12 días hábiles en llegar a destino.';
+const TEXTO_IMPORTANTE_TERRESTRE =
+  'Terrestre. Este servicio se envía sin seguimiento hasta la ciudad de Hermosillo y, ya llegando a la ciudad de Hermosillo, es escaneado en la paquetería y es cuando comienza a tener movimiento de información al consultar la guía. Este servicio tarda de 7 a 10 días hábiles aproximadamente en arribar a destino.';
+const TEXTO_IMPORTANTE_TIJUANA =
+  'El servicio terrestre de Tijuana comienza su escaneo en el momento en que se recibe, sale directamente de Tijuana y es rastreable desde el día 1. Llega a destino en un tiempo promedio de 5 a 8 días hábiles.';
 
 const ORDINALES = ['1ra', '2da', '3ra', '4ta', '5ta', '6ta', '7ma', '8va'];
 
@@ -54,6 +71,9 @@ export default function Cotizador() {
   const [clienteNombre, setClienteNombre] = useState('');
   const [zonaExtendida, setZonaExtendida] = useState(false);
   const [incluirBajaPack, setIncluirBajaPack] = useState(false);
+  // Terrestre Tijuana va incluido por defecto; la casilla permite quitarlo
+  // rápido si más adelante cambia el proveedor.
+  const [incluirTijuana, setIncluirTijuana] = useState(true);
   const [resultado, setResultado] = useState(null);
   const [copiado, setCopiado] = useState(false);
   const [compartiendo, setCompartiendo] = useState(false);
@@ -77,6 +97,7 @@ export default function Cotizador() {
     setClienteNombre('');
     setZonaExtendida(false);
     setIncluirBajaPack(false);
+    setIncluirTijuana(true);
     setResultado(null);
     setAvisoCompartir('');
   }
@@ -93,14 +114,17 @@ export default function Cotizador() {
     const conTier = detalle.filter((d) => d.tier);
     const totalAereo = conTier.reduce((s, d) => s + d.tier.aereo, 0) + (zonaExtendida ? CARGO_ZONA_EXTENDIDA : 0);
     const totalTerrestre = conTier.reduce((s, d) => s + d.tier.terrestre, 0) + (zonaExtendida ? CARGO_ZONA_EXTENDIDA : 0);
+    const totalTijuana = conTier.reduce((s, d) => s + d.tier.tijuana, 0) + (zonaExtendida ? CARGO_ZONA_EXTENDIDA : 0);
     const totalBajaPack = conTier.reduce((s, d) => s + d.tier.bajapack, 0) + (zonaExtendida ? CARGO_ZONA_EXTENDIDA : 0);
 
     setResultado({
       detalle,
       totalAereo,
       totalTerrestre,
+      totalTijuana,
       totalBajaPack,
       zonaExtendida,
+      incluirTijuana,
       incluirBajaPack,
       clienteNombre,
       fecha: new Date(),
@@ -130,6 +154,7 @@ export default function Cotizador() {
         texto += `⚠️ Esta caja supera los 60 kg del tabulador, necesita cotización especial.\n`;
       } else if (multi) {
         texto += `Aéreo: ${moneda(d.tier.aereo)}  ·  Terrestre: ${moneda(d.tier.terrestre)}`;
+        if (r.incluirTijuana) texto += `  ·  Terrestre Tijuana: ${moneda(d.tier.tijuana)}`;
         if (r.incluirBajaPack) texto += `  ·  Baja Pack Express: ${moneda(d.tier.bajapack)}`;
         texto += `\n`;
       }
@@ -139,16 +164,22 @@ export default function Cotizador() {
     if (multi) {
       texto += `Total aéreo: ${moneda(r.totalAereo)}\n`;
       texto += `Total terrestre: ${moneda(r.totalTerrestre)}\n`;
+      if (r.incluirTijuana) texto += `Total terrestre Tijuana: ${moneda(r.totalTijuana)}\n`;
       if (r.incluirBajaPack) texto += `Total Baja Pack Express: ${moneda(r.totalBajaPack)}\n`;
     } else {
       texto += `Aéreo: ${moneda(r.totalAereo)}\n`;
       texto += `Terrestre: ${moneda(r.totalTerrestre)}\n`;
+      if (r.incluirTijuana) texto += `Terrestre Tijuana: ${moneda(r.totalTijuana)}\n`;
       if (r.incluirBajaPack) texto += `Baja Pack Express: ${moneda(r.totalBajaPack)}\n`;
     }
 
     if (r.zonaExtendida) {
       texto += `\n(Incluye cargo de zona extendida de ${moneda(CARGO_ZONA_EXTENDIDA)})\n`;
     }
+
+    // Importante: siempre después de los precios y antes de las condiciones de pago.
+    texto += `\nImportante.\n${TEXTO_IMPORTANTE_AEREO}\n\n${TEXTO_IMPORTANTE_TERRESTRE}\n`;
+    if (r.incluirTijuana) texto += `\n${TEXTO_IMPORTANTE_TIJUANA}\n`;
 
     texto +=
       `\nEl pago debe quedar a más tardar el día miércoles para que tu envío salga en la misma semana.\n\n` +
@@ -308,7 +339,16 @@ export default function Cotizador() {
               onChange={(e) => setZonaExtendida(e.target.checked)}
               style={{ width: 'auto', margin: 0 }}
             />
-            ¿El destino está en zona extendida? (agrega {moneda(CARGO_ZONA_EXTENDIDA)})
+            ¿El destino está en zona extendida? (agrega {moneda(CARGO_ZONA_EXTENDIDA)} a cada servicio)
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 400, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={incluirTijuana}
+              onChange={(e) => setIncluirTijuana(e.target.checked)}
+              style={{ width: 'auto', margin: 0 }}
+            />
+            Incluir Terrestre Tijuana (servicio con otro proveedor)
           </label>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 400, cursor: 'pointer' }}>
             <input
@@ -349,6 +389,7 @@ export default function Cotizador() {
                   <th>Rango</th>
                   <th>Aéreo</th>
                   <th>Terrestre</th>
+                  {resultado.incluirTijuana && <th>Terrestre Tijuana</th>}
                   {resultado.incluirBajaPack && <th>Baja Pack Express</th>}
                 </tr>
               </thead>
@@ -360,6 +401,7 @@ export default function Cotizador() {
                     <td>{d.tier ? `${d.tier.kg} kg` : '—'}</td>
                     <td>{d.tier ? moneda(d.tier.aereo) : 'Cotización especial'}</td>
                     <td>{d.tier ? moneda(d.tier.terrestre) : '—'}</td>
+                    {resultado.incluirTijuana && <td>{d.tier ? moneda(d.tier.tijuana) : '—'}</td>}
                     {resultado.incluirBajaPack && <td>{d.tier ? moneda(d.tier.bajapack) : '—'}</td>}
                   </tr>
                 ))}
@@ -369,6 +411,7 @@ export default function Cotizador() {
                   <td colSpan={3}>Total{resultado.zonaExtendida ? ' (incluye zona extendida)' : ''}</td>
                   <td>{moneda(resultado.totalAereo)}</td>
                   <td>{moneda(resultado.totalTerrestre)}</td>
+                  {resultado.incluirTijuana && <td>{moneda(resultado.totalTijuana)}</td>}
                   {resultado.incluirBajaPack && <td>{moneda(resultado.totalBajaPack)}</td>}
                 </tr>
               </tfoot>
@@ -432,6 +475,7 @@ export default function Cotizador() {
                 <th>Peso (kg)</th>
                 <th>Aéreo</th>
                 <th>Terrestre</th>
+                <th>Terrestre Tijuana</th>
                 <th>Baja Pack Express</th>
               </tr>
             </thead>
@@ -441,6 +485,7 @@ export default function Cotizador() {
                   <td data-label="Peso (kg)">{t.kg} kg</td>
                   <td data-label="Aéreo">{moneda(t.aereo)}</td>
                   <td data-label="Terrestre">{moneda(t.terrestre)}</td>
+                  <td data-label="Terrestre Tijuana">{moneda(t.tijuana)}</td>
                   <td data-label="Baja Pack Express">{moneda(t.bajapack)}</td>
                 </tr>
               ))}
@@ -449,8 +494,10 @@ export default function Cotizador() {
         </div>
         <p style={{ fontSize: 12.5, color: '#6b7280', marginTop: 10 }}>
           La tarifa se determina por el mayor entre el peso físico y el volumétrico. El costo incluye
-          recolección, almacenamiento, transporte, empaque, sello aduanal y envío. Baja Pack Express solo
-          aplica a clientes de zona fronteriza. Los envíos están sujetos a inspecciones aduanales; cualquier
+          recolección, almacenamiento, transporte, empaque, sello aduanal y envío. El aéreo tiene un cargo
+          adicional de $500.00 que no está incluido en el precio (se avisa en el texto "Importante").
+          Terrestre Tijuana es un servicio con otro proveedor que sale directo de Tijuana. Baja Pack
+          Express solo aplica a clientes de zona fronteriza. Los envíos están sujetos a inspecciones aduanales; cualquier
           cobro adicional corre por cuenta del cliente.
         </p>
       </div>
